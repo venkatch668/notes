@@ -19,6 +19,12 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Declared so the job can read variables scoped to this environment.
+    # `vars.*` only resolves repository/organisation variables plus those of the
+    # environment a job declares — an environment-scoped variable is invisible
+    # to a job without this line, and silently reads as empty rather than
+    # failing, which ships the app in local mode.
+    environment: github-pages
     defaults:
       run:
         working-directory: frontend
