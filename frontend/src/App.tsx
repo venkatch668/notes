@@ -11,6 +11,7 @@ import { SearchPalette } from './components/SearchPalette';
 import { AIPanel } from './components/AIPanel';
 import { InsightsPanel } from './components/InsightsPanel';
 import type { Citation } from './services/aiService';
+import { MOBILE_QUERY, useMediaQuery } from './lib/useMediaQuery';
 
 const DAILY_SECTION = 'sec-daily';
 
@@ -36,12 +37,25 @@ export default function App() {
   const [aiOpen, setAiOpen] = useState(false);
   const [insightsOpen, setInsightsOpen] = useState(false);
 
+  const isMobile = useMediaQuery(MOBILE_QUERY);
+  const [navOpen, setNavOpen] = useState(!isMobile);
+
   const [carry, setCarry] = useState<Array<{ page: PageSummary; block: Block }>>([]);
   const [carryDismissed, setCarryDismissed] = useState(false);
   const [flashBlockId, setFlashBlockId] = useState<string | null>(null);
 
   const activeBlockId = useRef<string | null>(null);
   const saveTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    setNavOpen(!isMobile);
+  }, [isMobile]);
+
+  // On a phone the drawer covers the note, so any navigation choice should
+  // close it — otherwise every tap needs a second tap to see the result.
+  const closeNavOnMobile = useCallback(() => {
+    if (isMobile) setNavOpen(false);
+  }, [isMobile]);
 
   /* ------------------------------------------------------------- loading */
 
@@ -99,12 +113,14 @@ export default function App() {
     setSectionId(DAILY_SECTION);
     setPage(withSeedBlock(p));
     setCarryDismissed(false);
-  }, []);
+    closeNavOnMobile();
+  }, [closeNavOnMobile]);
 
   const openPage = useCallback(async (pageId: string) => {
     const p = await api.getPage(pageId);
     if (p) setPage(withSeedBlock(p));
-  }, []);
+    closeNavOnMobile();
+  }, [closeNavOnMobile]);
 
   const jumpTo = useCallback(
     async (hit: { pageId: string; blockId: string }) => {
@@ -231,6 +247,8 @@ export default function App() {
         notebookName={notebookName}
         aiOpen={aiOpen}
         insightsOpen={insightsOpen}
+        navOpen={navOpen}
+        onToggleNav={() => setNavOpen((v) => !v)}
         onSearch={() => setSearchOpen(true)}
         onToggleAi={() => {
           setAiOpen((v) => !v);
@@ -245,7 +263,20 @@ export default function App() {
       <TabStrip active={tab} onSelect={setTab} />
       <Toolbar tab={tab} actions={actions} />
 
-      <div className={`workspace ${sidePanel ? 'workspace--ai' : ''}`}>
+      <div
+        className={[
+          'workspace',
+          sidePanel ? 'workspace--ai' : '',
+          navOpen ? 'workspace--nav' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {isMobile && navOpen && (
+          <div className="nav-scrim" onClick={() => setNavOpen(false)} aria-hidden />
+        )}
+
+        <nav className={`nav ${navOpen ? 'nav--open' : ''}`} aria-label="Notebook navigation">
         <NotebookPane
           notebooks={notebooks}
           activeId={notebookId}
@@ -291,6 +322,7 @@ export default function App() {
           onSelectDate={openDate}
           onAdd={actions.newPage}
         />
+        </nav>
 
         {page ? (
           <NoteCanvas
