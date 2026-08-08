@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>React PWA Demo</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #0f172a;
+      color: #e2e8f0;
+      text-align: center;
+    }
+
+    .app-shell {
+      width: min(840px, 92vw);
+      padding: 32px;
+      border-radius: 24px;
+      background: rgba(15, 23, 42, 0.92);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 4vw, 3.8rem);
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
+
+    .hero p {
+      max-width: 42rem;
+      margin: 0 auto 1.75rem;
+      color: #cbd5e1;
+      line-height: 1.7;
+    }
+
+    .controls {
+      display: grid;
+      gap: 1rem;
+      justify-items: center;
+      margin-bottom: 2rem;
+    }
+
+    button {
+      border: none;
+      padding: 14px 24px;
+      border-radius: 999px;
+      background: #38bdf8;
+      color: #0f172a;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      opacity: 0.95;
+    }
+
+    .hint {
+      color: #94a3b8;
+      font-size: 0.98rem;
+      max-width: 34rem;
+    }
+
+    .cards {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .card {
+      padding: 1.5rem;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      text-align: left;
+    }
+
+    .card h2 {
+      margin-bottom: 0.75rem;
+      font-size: 1.25rem;
+      color: #f8fafc;
+    }
+
+    .card p {
+      color: #cbd5e1;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 620px) {
+      .app-shell {
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
