@@ -196,10 +196,12 @@ export class AiService {
   }
 }
 
+// Kept generic on purpose: these used to name the demo notes, which meant the
+// assistant suggested searching for content the user had never written.
 export const SUGGESTIONS = [
   'What did I accomplish this week?',
   'What commitments are still pending?',
-  'Show everything related to Kafka',
   'Summarize my professional work this week',
-  'What did I capture about Game Recommendations?',
+  'What did I spend most of my time on?',
+  'What should I focus on tomorrow?',
 ];
