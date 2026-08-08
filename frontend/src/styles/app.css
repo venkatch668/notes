@@ -54,6 +54,22 @@ body {
   color: #fff;
 }
 
+.titlebar__nav {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--radius-md);
+  color: #fff;
+  font-family: var(--font-symbol);
+  font-size: 17px;
+}
+
+.titlebar__nav:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .titlebar__brand {
   display: flex;
   align-items: center;
@@ -259,17 +275,48 @@ body {
 
 /* ----------------------------------------------------------------- Panes */
 
+/* `position: relative` anchors the mobile drawer and its scrim to the workspace
+   rather than the viewport, so neither needs to know the chrome's height. */
 .workspace {
+  position: relative;
   display: grid;
-  grid-template-columns:
-    var(--pane-notebooks-w) var(--pane-sections-w) var(--pane-pages-w) 1fr;
+  grid-template-columns: 0 1fr;
   min-height: 0;
   background: var(--paper);
+  transition: grid-template-columns 0.18s ease;
+}
+
+.workspace--nav {
+  grid-template-columns: auto 1fr;
 }
 
 .workspace--ai {
+  grid-template-columns: 0 1fr 360px;
+}
+
+.workspace--ai.workspace--nav {
+  grid-template-columns: auto 1fr 360px;
+}
+
+/* The three navigation panes travel together — collapsing is one decision, not
+   three, which is what makes the hamburger feel like OneNote's. */
+.nav {
+  display: grid;
   grid-template-columns:
-    var(--pane-notebooks-w) var(--pane-sections-w) var(--pane-pages-w) 1fr 360px;
+    var(--pane-notebooks-w) var(--pane-sections-w) var(--pane-pages-w);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspace:not(.workspace--nav) .nav {
+  display: none;
+}
+
+.nav-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .pane {
@@ -1222,26 +1269,184 @@ mark {
 
 /* ------------------------------------------------------------ Responsive */
 
+/* Laptops: tighten the panes before sacrificing anything. */
 @media (max-width: 1280px) {
-  .workspace,
-  .workspace--ai {
-    grid-template-columns: 168px 168px 210px 1fr;
+  :root {
+    --pane-notebooks-w: 168px;
+    --pane-sections-w: 168px;
+    --pane-pages-w: 208px;
   }
-  .workspace--ai .aipanel {
-    display: none;
+
+  .workspace--ai {
+    grid-template-columns: 0 1fr 320px;
+  }
+
+  .workspace--ai.workspace--nav {
+    grid-template-columns: auto 1fr 320px;
   }
 }
 
+/* Tablets: the side panel becomes an overlay so the note keeps its width. */
+@media (max-width: 1100px) {
+  .workspace--ai,
+  .workspace--ai.workspace--nav {
+    grid-template-columns: 0 1fr;
+  }
+
+  .workspace--ai.workspace--nav {
+    grid-template-columns: auto 1fr;
+  }
+
+  .aipanel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 46;
+    width: min(360px, 92vw);
+    box-shadow: var(--shadow-flyout);
+  }
+}
+
+/* ------------------------------------------------------------------ Phones
+ * Navigation stops being a column and becomes an overlay drawer: the three
+ * panes stack vertically in one scrollable sheet, which is the only way three
+ * lists fit a phone without becoming unusably narrow.
+ */
 @media (max-width: 900px) {
   .workspace,
-  .workspace--ai {
-    grid-template-columns: 150px 1fr;
+  .workspace--nav,
+  .workspace--ai,
+  .workspace--ai.workspace--nav {
+    grid-template-columns: 1fr;
   }
-  .pane--sections,
-  .pane--pages {
+
+  .nav {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    width: min(84vw, 320px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--grey-20);
+    border-right: 1px solid var(--grey-40);
+    box-shadow: var(--shadow-flyout);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.22s ease, visibility 0.22s ease;
+  }
+
+  /* Stays mounted while closed so the slide-in has something to animate;
+     `visibility: hidden` keeps the off-screen panes out of the tab order. */
+  .workspace:not(.workspace--nav) .nav {
+    display: flex;
+  }
+
+  .nav--open {
+    transform: none;
+    visibility: visible;
+  }
+
+  .pane {
+    border-right: 0;
+    border-bottom: 1px solid var(--grey-40);
+  }
+
+  /* Stacked in one scroller, so each pane sizes to content instead of
+     competing for the same vertical space. */
+  .pane__scroll {
+    flex: none;
+    max-height: 40vh;
+  }
+
+  .canvas__sheet {
+    padding: 18px 18px 200px;
+  }
+
+  .toolbar {
+    min-height: auto;
+    padding: 4px 6px;
+  }
+
+  .toolgroup__label {
     display: none;
   }
+
+  .tool--tall {
+    flex-direction: row;
+    gap: 6px;
+    height: 30px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .tool--tall .tool__glyph {
+    font-size: 15px;
+  }
+
+  .titlebar__searchlabel,
+  .titlebar__kbd,
+  .titlebar__btnlabel,
+  .titlebar__btn--wide {
+    display: none;
+  }
+
+  .titlebar__searchbox {
+    width: auto;
+    padding: 0 10px;
+  }
+
+  .aipanel {
+    width: min(92vw, 360px);
+  }
+
+  .palette {
+    width: 96vw;
+    max-height: 80vh;
+  }
+
+  .scrim {
+    padding-top: 40px;
+  }
+}
+
+/* Small phones: give the note every pixel. */
+@media (max-width: 560px) {
+  .titlebar__name {
+    display: none;
+  }
+
   .canvas__sheet {
-    padding: 20px 20px 200px;
+    padding: 14px 14px 180px;
+  }
+
+  .block {
+    padding-left: 22px;
+  }
+
+  .editable {
+    font-size: 15px;
+  }
+}
+
+/* Touch: the drag handle has no hover to reveal it, and 17px checkboxes are
+   below the 24px minimum target, so both get sized up. */
+@media (hover: none) {
+  .block__handle {
+    opacity: 0.55;
+  }
+
+  .checkbox {
+    width: 22px;
+    height: 22px;
+    margin-top: 4px;
+  }
+
+  .calendar__day {
+    font-size: 12.5px;
   }
 }

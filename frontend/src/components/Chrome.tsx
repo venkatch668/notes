@@ -6,6 +6,8 @@ export function TitleBar({
   notebookName,
   aiOpen,
   insightsOpen,
+  navOpen,
+  onToggleNav,
   onSearch,
   onToggleAi,
   onToggleInsights,
@@ -13,23 +15,36 @@ export function TitleBar({
   notebookName: string;
   aiOpen: boolean;
   insightsOpen: boolean;
+  navOpen: boolean;
+  onToggleNav: () => void;
   onSearch: () => void;
   onToggleAi: () => void;
   onToggleInsights: () => void;
 }) {
   return (
     <header className="titlebar">
+      <button
+        type="button"
+        className="titlebar__nav"
+        onClick={onToggleNav}
+        aria-expanded={navOpen}
+        aria-label={navOpen ? 'Hide navigation' : 'Show navigation'}
+        title="Show navigation"
+      >
+        ☰
+      </button>
+
       <div className="titlebar__brand">
         <span className="titlebar__logo" aria-hidden>
           N
         </span>
-        <span>{notebookName}</span>
+        <span className="titlebar__name">{notebookName}</span>
       </div>
 
       <div className="titlebar__search">
-        <button type="button" className="titlebar__searchbox" onClick={onSearch}>
+        <button type="button" className="titlebar__searchbox" onClick={onSearch} aria-label="Search">
           <span aria-hidden>🔍</span>
-          <span>Search all notebooks</span>
+          <span className="titlebar__searchlabel">Search all notebooks</span>
           <span className="titlebar__kbd">Ctrl K</span>
         </button>
       </div>
@@ -37,7 +52,7 @@ export function TitleBar({
       <div className="titlebar__actions">
         <button
           type="button"
-          className={`titlebar__btn ${insightsOpen ? 'titlebar__btn--on' : ''}`}
+          className={`titlebar__btn titlebar__btn--wide ${insightsOpen ? 'titlebar__btn--on' : ''}`}
           onClick={onToggleInsights}
         >
           Insights
@@ -48,7 +63,8 @@ export function TitleBar({
           onClick={onToggleAi}
           title="Toggle AI assistant (Ctrl+J)"
         >
-          ✨ Assistant
+          <span aria-hidden>✨</span>
+          <span className="titlebar__btnlabel"> Assistant</span>
         </button>
         <span className="titlebar__avatar" aria-hidden>
           V
