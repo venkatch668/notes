@@ -33,6 +33,31 @@ jobs:
 
       - run: npm ci
 
+      # Report which build-time variables arrived, without printing values.
+      # A missing variable does not fail the build — it silently ships the app
+      # in local mode, which looks like "my changes didn't deploy". Saying so
+      # here turns a confusing symptom into an obvious log line.
+      - name: Check build configuration
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+        run: |
+          missing=0
+          for name in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY VITE_API_URL; do
+            if [ -n "${!name}" ]; then
+              echo "  set     $name (${#name} char name, value hidden)"
+            else
+              echo "  MISSING $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" = "1" ]; then
+            echo "::warning::Some VITE_* repository *variables* are unset, so this build ships in LOCAL mode (localStorage, no login). Set them under Settings > Secrets and variables > Actions > Variables tab — not Secrets."
+          else
+            echo "All three set: building in SERVER mode (Supabase auth + API)."
+          fi
+
       - run: npm run build
         env:
           # Repo is served at https://<user>.github.io/notes/.
