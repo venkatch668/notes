@@ -19,7 +19,8 @@ export function NotebookPane({
   onAdd,
 }: {
   notebooks: Notebook[];
-  activeId: string;
+  /** Null while the workspace is still loading — nothing is selected yet. */
+  activeId: string | null;
   onSelect: (id: string) => void;
   onAdd: () => void;
 }) {
@@ -60,7 +61,8 @@ export function SectionPane({
   quick,
 }: {
   sections: Section[];
-  activeId: string;
+  /** Null until the default section has been resolved from the API. */
+  activeId: string | null;
   counts: Record<string, number>;
   onSelect: (id: string) => void;
   onAdd: () => void;

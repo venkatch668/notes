@@ -13,7 +13,15 @@ import { InsightsPanel } from './components/InsightsPanel';
 import type { Citation } from './services/aiService';
 import { MOBILE_QUERY, useMediaQuery } from './lib/useMediaQuery';
 
-const DAILY_SECTION = 'sec-daily';
+/**
+ * The daily note lives in a section identified by NAME, not by a hardcoded id.
+ *
+ * Ids differ per backend — local mode invents readable ones ('sec-daily'),
+ * Postgres generates UUIDs — so assuming either breaks the other. Against the
+ * server a literal 'sec-daily' is not a valid UUID and the API rejects it with
+ * 422 before it even checks the token.
+ */
+const DAILY_SECTION_NAME = 'Daily Log';
 
 /**
  * A page must always have something to put the caret in, otherwise "open and
@@ -28,8 +36,10 @@ export default function App() {
   const [sections, setSections] = useState<Section[]>([]);
   const [pages, setPages] = useState<PageSummary[]>([]);
 
-  const [notebookId, setNotebookId] = useState('nb-work');
-  const [sectionId, setSectionId] = useState(DAILY_SECTION);
+  // Null until discovered from the API. Never guessed.
+  const [notebookId, setNotebookId] = useState<string | null>(null);
+  const [sectionId, setSectionId] = useState<string | null>(null);
+  const dailySectionId = useRef<string | null>(null);
   const [page, setPage] = useState<Page | null>(null);
 
   const [tab, setTab] = useState<RibbonTab>('Home');
@@ -75,15 +85,27 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const [nbs, secs] = await Promise.all([api.listNotebooks(), api.listSections('nb-work')]);
+      const nbs = await api.listNotebooks();
       setNotebooks(nbs);
+      if (!nbs.length) return;
+
+      const firstNotebook = nbs[0];
+      setNotebookId(firstNotebook.id);
+
+      const secs = await api.listSections(firstNotebook.id);
       setSections(secs);
-      const today = await api.getOrCreateDaily(DAILY_SECTION, todayKey());
+
+      const daily = secs.find((s) => s.name === DAILY_SECTION_NAME) ?? secs[0];
+      dailySectionId.current = daily?.id ?? null;
+      setSectionId(daily?.id ?? null);
+
+      const today = await api.getOrCreateDaily(daily?.id ?? '', todayKey());
       setPage(withSeedBlock(today));
     })();
   }, []);
 
   useEffect(() => {
+    if (!notebookId) return;
     api.listSections(notebookId).then((s) => {
       setSections(s);
       if (!s.some((x) => x.id === sectionId) && s[0]) setSectionId(s[0].id);
@@ -91,6 +113,7 @@ export default function App() {
   }, [notebookId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshPages = useCallback(async () => {
+    if (!sectionId) return;
     setPages(await api.listPages(sectionId));
   }, [sectionId]);
 
@@ -139,8 +162,8 @@ export default function App() {
   /* ---------------------------------------------------------- navigation */
 
   const openDate = useCallback(async (date: string) => {
-    const p = await api.getOrCreateDaily(DAILY_SECTION, date);
-    setSectionId(DAILY_SECTION);
+    const p = await api.getOrCreateDaily(dailySectionId.current ?? '', date);
+    if (dailySectionId.current) setSectionId(dailySectionId.current);
     setPage(withSeedBlock(p));
     setCarryDismissed(false);
     closeNavOnMobile();
@@ -236,6 +259,7 @@ export default function App() {
       changePage({ ...page, blocks: [...page.blocks, ...created] });
     },
     newPage: async () => {
+      if (!sectionId) return;
       const p = await api.createPage(sectionId, 'Untitled page');
       setPage(withSeedBlock(p));
       refreshPages();
@@ -333,11 +357,12 @@ export default function App() {
             if (which === 'today') openDate(t);
             else if (which === 'yesterday') openDate(addDays(t, -1));
             else {
-              setSectionId(DAILY_SECTION);
+              if (dailySectionId.current) setSectionId(dailySectionId.current);
               setSearchOpen(true);
             }
           }}
           onAdd={async () => {
+            if (!notebookId) return;
             const name = window.prompt('Section name');
             if (name) {
               await api.createSection(notebookId, name);
