@@ -1,0 +1,1247 @@
+@import './tokens.css';
+
+/* --------------------------------------------------------------- Layer 3
+ * Bootstrap Reboot has already normalised the document; this file only adds
+ * what the OneNote look needs on top.
+ */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--grey-20);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Chrome buttons are bare surfaces, not Bootstrap `.btn`s. Reboot leaves the
+   browser's button chrome in place, so strip it for everything that is not an
+   actual Bootstrap button.
+ *
+ * Wrapped in :where() so this contributes ZERO specificity. Written bare,
+ * `button:not(.btn)` scores (0,1,1) and outranks every single-class rule below
+ * it — which silently flattens the padding, border, background and font size of
+ * every tab, tool, checkbox and pane row in the app. */
+:where(button:not(.btn)) {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------- App shell */
+
+.app {
+  display: grid;
+  grid-template-rows: var(--titlebar-h) var(--tabstrip-h) auto 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* -------------------------------------------------------------- Titlebar */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  background: var(--onenote-purple);
+  color: #fff;
+}
+
+.titlebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.titlebar__logo {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--onenote-purple);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.titlebar__search {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.titlebar__searchbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(560px, 100%);
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  transition: background 0.15s ease;
+}
+
+.titlebar__searchbox:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.titlebar__searchbox span {
+  opacity: 0.9;
+}
+
+.titlebar__kbd {
+  margin-left: auto;
+  padding: 1px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.titlebar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.titlebar__btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  color: #fff;
+}
+
+.titlebar__btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.titlebar__btn--on {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.titlebar__avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--onenote-purple);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------- Tab strip */
+
+.tabstrip {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 8px;
+  background: var(--onenote-purple);
+}
+
+.tabstrip__tab {
+  height: 28px;
+  padding: 0 14px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+}
+
+.tabstrip__tab:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.tabstrip__tab--active {
+  background: var(--grey-10);
+  color: var(--onenote-purple);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------- Toolbar */
+
+.toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-height: var(--toolbar-h);
+  padding: 6px 10px;
+  background: var(--grey-10);
+  border-bottom: 1px solid var(--grey-30);
+  overflow-x: auto;
+}
+
+.toolgroup {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0 10px;
+  border-right: 1px solid var(--grey-30);
+}
+
+.toolgroup:last-child {
+  border-right: 0;
+}
+
+.toolgroup__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolgroup__label {
+  padding-top: 4px;
+  color: var(--grey-130);
+  font-size: 11px;
+  text-align: center;
+}
+
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  min-width: 28px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  color: var(--grey-160);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.tool:hover {
+  background: var(--grey-30);
+}
+
+.tool:active {
+  background: var(--grey-40);
+}
+
+.tool--on {
+  background: var(--onenote-purple-light);
+  color: var(--onenote-purple);
+}
+
+.tool--tall {
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+  height: 100%;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.tool__glyph {
+  font-family: var(--font-symbol);
+  font-size: 16px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+}
+
+.tool--tall .tool__glyph {
+  font-size: 20px;
+}
+
+/* ----------------------------------------------------------------- Panes */
+
+.workspace {
+  display: grid;
+  grid-template-columns:
+    var(--pane-notebooks-w) var(--pane-sections-w) var(--pane-pages-w) 1fr;
+  min-height: 0;
+  background: var(--paper);
+}
+
+.workspace--ai {
+  grid-template-columns:
+    var(--pane-notebooks-w) var(--pane-sections-w) var(--pane-pages-w) 1fr 360px;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--grey-30);
+  overflow: hidden;
+}
+
+.pane--notebooks {
+  background: var(--grey-20);
+}
+
+.pane--sections {
+  background: var(--grey-10);
+}
+
+.pane--pages {
+  background: var(--paper);
+}
+
+.pane__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 6px;
+  color: var(--grey-130);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pane__add {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  color: var(--grey-130);
+  font-size: 15px;
+}
+
+.pane__add:hover {
+  background: var(--grey-30);
+  color: var(--onenote-purple);
+}
+
+.pane__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+
+/* Notebook / section rows */
+
+.navrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 12px;
+  text-align: left;
+  font-size: 13px;
+  border-left: 3px solid transparent;
+}
+
+.navrow:hover {
+  background: rgba(0, 0, 0, 0.045);
+}
+
+.navrow--active {
+  background: var(--paper);
+  border-left-color: var(--onenote-purple);
+  font-weight: 600;
+}
+
+.pane--sections .navrow--active {
+  background: var(--paper);
+}
+
+.navrow__swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.navrow__label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navrow__count {
+  color: var(--grey-90);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Quick date shortcuts */
+
+.quickdates {
+  display: grid;
+  gap: 1px;
+  padding: 4px 0 8px;
+}
+
+.quickdate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  text-align: left;
+  border-left: 3px solid transparent;
+}
+
+.quickdate:hover {
+  background: rgba(0, 0, 0, 0.045);
+}
+
+.quickdate--active {
+  border-left-color: var(--onenote-purple);
+  color: var(--onenote-purple);
+  font-weight: 600;
+}
+
+/* Page list */
+
+.pagerow {
+  display: block;
+  width: 100%;
+  padding: 8px 12px 8px 16px;
+  text-align: left;
+  border-left: 3px solid transparent;
+}
+
+.pagerow:hover {
+  background: var(--grey-10);
+}
+
+.pagerow--active {
+  background: var(--onenote-purple-light);
+  border-left-color: var(--onenote-purple);
+}
+
+.pagerow__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--grey-160);
+}
+
+.pagerow__dots {
+  margin-left: auto;
+  color: var(--onenote-purple);
+  letter-spacing: -1px;
+  font-size: 9px;
+}
+
+.pagerow__preview {
+  margin-top: 2px;
+  color: var(--grey-130);
+  font-size: 11.5px;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.pagerow__date {
+  margin-top: 3px;
+  color: var(--grey-90);
+  font-size: 11px;
+}
+
+/* Calendar */
+
+.calendar {
+  padding: 6px 10px 12px;
+  border-top: 1px solid var(--grey-30);
+}
+
+.calendar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.calendar__nav {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  color: var(--grey-130);
+}
+
+.calendar__nav:hover {
+  background: var(--grey-30);
+}
+
+.calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+.calendar__dow {
+  color: var(--grey-90);
+  font-size: 10px;
+  text-align: center;
+  padding-bottom: 2px;
+}
+
+.calendar__day {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  color: var(--grey-160);
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar__day:hover {
+  background: var(--grey-30);
+}
+
+.calendar__day--muted {
+  color: var(--grey-90);
+}
+
+.calendar__day--today {
+  outline: 1px solid var(--onenote-purple);
+  font-weight: 700;
+  color: var(--onenote-purple);
+}
+
+.calendar__day--active {
+  background: var(--onenote-purple);
+  color: #fff;
+  font-weight: 700;
+}
+
+.calendar__dots {
+  position: absolute;
+  bottom: 1px;
+  display: flex;
+  gap: 1px;
+}
+
+.calendar__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--onenote-purple);
+}
+
+.calendar__day--active .calendar__dot {
+  background: #fff;
+}
+
+/* ---------------------------------------------------------------- Canvas */
+
+.canvas {
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--paper);
+  background-image: linear-gradient(var(--rule) 1px, transparent 1px);
+  background-size: 100% 28px;
+  background-position: 0 -1px;
+}
+
+.canvas__sheet {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 48px 240px;
+}
+
+.pagetitle {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-note);
+  font-size: 30px;
+  font-weight: 400;
+  color: var(--grey-160);
+  line-height: 1.2;
+}
+
+.pagetitle::placeholder {
+  color: var(--grey-60);
+}
+
+.pagemeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--grey-30);
+  color: var(--grey-90);
+  font-size: 12px;
+}
+
+.pagemeta__stat {
+  color: var(--grey-130);
+}
+
+/* Carry-forward strip */
+
+.carry {
+  margin: 14px 0 6px;
+  border: 1px solid var(--grey-40);
+  border-left: 3px solid var(--onenote-purple);
+  border-radius: var(--radius-md);
+  background: var(--grey-10);
+}
+
+.carry__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--grey-160);
+}
+
+.carry__actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.carry__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: 13px;
+  border-top: 1px solid var(--grey-30);
+}
+
+.carry__from {
+  margin-left: auto;
+  color: var(--grey-90);
+  font-size: 11px;
+}
+
+.linkbtn {
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--onenote-purple);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.linkbtn:hover {
+  background: var(--onenote-purple-light);
+}
+
+.linkbtn--quiet {
+  color: var(--grey-130);
+  font-weight: 400;
+}
+
+.linkbtn--quiet:hover {
+  background: var(--grey-30);
+  color: var(--grey-160);
+}
+
+/* --------------------------------------------------------------- Blocks */
+
+.blocks {
+  margin-top: 10px;
+}
+
+.block {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 1px 0 1px 26px;
+  border-radius: var(--radius-sm);
+}
+
+.block--over {
+  box-shadow: 0 -2px 0 var(--onenote-purple);
+}
+
+.block--flash {
+  animation: flash 1.2s ease-out;
+}
+
+@keyframes flash {
+  0%,
+  40% {
+    background: var(--highlight);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.block__handle {
+  position: absolute;
+  left: 2px;
+  top: 3px;
+  width: 18px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--grey-60);
+  cursor: grab;
+  opacity: 0;
+  font-size: 13px;
+}
+
+.block:hover .block__handle {
+  opacity: 1;
+}
+
+.block__handle:hover {
+  background: var(--grey-30);
+  color: var(--grey-130);
+}
+
+.block__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.editable {
+  outline: 0;
+  min-height: 1.75em;
+  font-family: var(--font-note);
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.editable:empty::before {
+  content: attr(data-placeholder);
+  color: var(--grey-60);
+  pointer-events: none;
+}
+
+.editable--h1 {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--onenote-purple);
+}
+
+.editable--h2 {
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--onenote-purple-dark);
+}
+
+.editable--h3 {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--grey-160);
+}
+
+.editable--code {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--grey-20);
+  border: 1px solid var(--grey-30);
+  white-space: pre-wrap;
+}
+
+.editable--done {
+  color: var(--grey-90);
+  text-decoration: line-through;
+}
+
+.block--bullet .block__body,
+.block--number .block__body {
+  display: flex;
+  gap: 8px;
+}
+
+.block__marker {
+  flex: none;
+  min-width: 14px;
+  padding-top: 4px;
+  color: var(--grey-130);
+  font-size: 15px;
+  line-height: 1.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.divider {
+  width: 100%;
+  height: 1px;
+  margin: 10px 0;
+  background: var(--grey-40);
+}
+
+/* Checkbox */
+
+.checkbox {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-top: 6px;
+  border: 1.5px solid var(--grey-90);
+  border-radius: 2px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  color: transparent;
+  font-size: 12px;
+  line-height: 1;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.checkbox:hover {
+  border-color: var(--onenote-purple);
+}
+
+.checkbox--done {
+  background: var(--onenote-purple);
+  border-color: var(--onenote-purple);
+  color: #fff;
+}
+
+/* Inline formatting */
+
+.i-code {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--grey-20);
+  border: 1px solid var(--grey-30);
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+.i-link {
+  color: var(--sec-blue);
+  text-underline-offset: 2px;
+}
+
+.i-tag {
+  color: var(--onenote-purple);
+  font-weight: 600;
+}
+
+mark {
+  background: var(--highlight);
+  color: inherit;
+  border-radius: 2px;
+}
+
+/* Chips */
+
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chip--professional {
+  background: var(--professional-bg);
+  color: var(--professional);
+}
+
+.chip--personal {
+  background: var(--personal-bg);
+  color: var(--personal);
+}
+
+.chip--high {
+  background: var(--prio-high-bg);
+  color: var(--prio-high);
+}
+
+.chip--medium {
+  background: var(--prio-med-bg);
+  color: var(--prio-med);
+}
+
+.chip--low {
+  background: var(--prio-low-bg);
+  color: var(--prio-low);
+}
+
+.chip--time {
+  background: var(--grey-20);
+  color: var(--grey-130);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip--due {
+  background: #eff6fc;
+  color: var(--sec-blue);
+}
+
+.chip--carried {
+  background: var(--grey-20);
+  color: var(--grey-130);
+  font-weight: 400;
+}
+
+/* ------------------------------------------------------------- Flyouts */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 84px;
+  z-index: 40;
+}
+
+.palette {
+  width: min(760px, 92vw);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-radius: 6px;
+  box-shadow: var(--shadow-flyout);
+  overflow: hidden;
+}
+
+.palette__input {
+  width: 100%;
+  padding: 16px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--grey-30);
+  outline: 0;
+  font-size: 17px;
+  font-family: var(--font-ui);
+}
+
+.palette__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--grey-30);
+  background: var(--grey-10);
+}
+
+.filterchip {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--grey-40);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--grey-130);
+  font-size: 12px;
+}
+
+.filterchip:hover {
+  border-color: var(--onenote-purple);
+  color: var(--onenote-purple);
+}
+
+.filterchip--on {
+  background: var(--onenote-purple);
+  border-color: var(--onenote-purple);
+  color: #fff;
+  font-weight: 600;
+}
+
+.palette__results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.result {
+  display: block;
+  width: 100%;
+  padding: 10px 18px;
+  text-align: left;
+  border-bottom: 1px solid var(--grey-20);
+}
+
+.result:hover,
+.result--cursor {
+  background: var(--onenote-purple-light);
+}
+
+.result__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--grey-130);
+  font-size: 11.5px;
+}
+
+.result__date {
+  font-weight: 600;
+  color: var(--onenote-purple);
+}
+
+.result__snippet {
+  margin-top: 3px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--grey-160);
+}
+
+.empty {
+  padding: 34px 18px;
+  color: var(--grey-90);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------- AI panel */
+
+.aipanel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--grey-10);
+  border-left: 1px solid var(--grey-30);
+}
+
+.aipanel__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--grey-30);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--grey-130);
+}
+
+.aipanel__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aimsg {
+  padding: 9px 11px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.aimsg--user {
+  align-self: flex-end;
+  max-width: 88%;
+  background: var(--onenote-purple);
+  color: #fff;
+}
+
+.aimsg--bot {
+  background: var(--paper);
+  border: 1px solid var(--grey-30);
+}
+
+.aicites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.aicite {
+  padding: 2px 7px;
+  border-radius: 9px;
+  background: var(--onenote-purple-light);
+  color: var(--onenote-purple);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.aisuggest {
+  padding: 7px 10px;
+  border: 1px solid var(--grey-40);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--grey-160);
+}
+
+.aisuggest:hover {
+  border-color: var(--onenote-purple);
+  color: var(--onenote-purple);
+}
+
+.aipanel__foot {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-top: 1px solid var(--grey-30);
+  background: var(--paper);
+}
+
+.aipanel__input {
+  flex: 1;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--grey-40);
+  border-radius: var(--radius-md);
+  outline: 0;
+  font: inherit;
+  font-size: 13px;
+}
+
+.aipanel__input:focus {
+  border-color: var(--onenote-purple);
+}
+
+.aipanel__send {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  background: var(--onenote-purple);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.aipanel__send:hover {
+  background: var(--onenote-purple-dark);
+}
+
+.aipanel__note {
+  padding: 8px 12px;
+  border-top: 1px solid var(--grey-30);
+  color: var(--grey-90);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* -------------------------------------------------------------- Insights */
+
+.insights {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.statgrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.stat {
+  padding: 9px 11px;
+  border: 1px solid var(--grey-30);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+
+.stat__value {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--onenote-purple);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat__label {
+  color: var(--grey-130);
+  font-size: 11px;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 62px;
+  padding: 8px 11px;
+  border: 1px solid var(--grey-30);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+
+.bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.bar__fill {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--onenote-purple);
+}
+
+.bar__label {
+  color: var(--grey-90);
+  font-size: 10px;
+}
+
+/* ------------------------------------------------------------ Responsive */
+
+@media (max-width: 1280px) {
+  .workspace,
+  .workspace--ai {
+    grid-template-columns: 168px 168px 210px 1fr;
+  }
+  .workspace--ai .aipanel {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .workspace,
+  .workspace--ai {
+    grid-template-columns: 150px 1fr;
+  }
+  .pane--sections,
+  .pane--pages {
+    display: none;
+  }
+  .canvas__sheet {
+    padding: 20px 20px 200px;
+  }
+}

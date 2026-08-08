@@ -1,7 +1,7 @@
 {
-  "name": "React PWA Demo",
-  "short_name": "ReactPWA",
-  "description": "A small React progressive web app demo with offline support.",
+  "name": "OneNote Todo",
+  "short_name": "OneNote",
+  "description": "A note-style todo list PWA with offline support.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0f172a",

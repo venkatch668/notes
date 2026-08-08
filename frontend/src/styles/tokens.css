@@ -1,0 +1,70 @@
+/* OneNote (Microsoft 365) design tokens. Single source of truth for color.
+   A dark variant would redefine only these values, never the rules below. */
+
+:root {
+  /* Brand */
+  --onenote-purple: #7719aa;
+  --onenote-purple-dark: #661592;
+  --onenote-purple-darker: #55117a;
+  --onenote-purple-light: #f3e8f9;
+  --onenote-magenta: #b4009e;
+
+  /* Neutrals — Fluent grey ramp */
+  --grey-10: #faf9f8;
+  --grey-20: #f3f2f1;
+  --grey-30: #edebe9;
+  --grey-40: #e1dfdd;
+  --grey-60: #c8c6c4;
+  --grey-90: #a19f9d;
+  --grey-130: #605e5c;
+  --grey-160: #323130;
+  --ink: #201f1e;
+
+  --paper: #ffffff;
+  --rule: #eef0f4;
+
+  /* Section tab palette */
+  --sec-purple: #7719aa;
+  --sec-blue: #0078d4;
+  --sec-green: #107c10;
+  --sec-orange: #ca5010;
+  --sec-magenta: #c239b3;
+  --sec-teal: #008272;
+
+  /* Semantic */
+  --professional: #7719aa;
+  --professional-bg: #f4e9fa;
+  --personal: #ca5010;
+  --personal-bg: #fdf1ea;
+
+  --prio-high: #d13438;
+  --prio-high-bg: #fdf3f4;
+  --prio-med: #ca5010;
+  --prio-med-bg: #fdf1ea;
+  --prio-low: #605e5c;
+  --prio-low-bg: #f3f2f1;
+
+  --focus: #7719aa;
+  --highlight: #fff3a3;
+
+  /* Type */
+  /* 'Segoe UI Symbol' / 'Segoe UI Emoji' must be in the stack or the ribbon's
+     geometric glyphs fall back to tofu boxes on Windows. */
+  --font-ui: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif,
+    'Segoe UI Symbol', 'Segoe UI Emoji';
+  --font-note: 'Calibri', 'Segoe UI', system-ui, sans-serif, 'Segoe UI Symbol', 'Segoe UI Emoji';
+  --font-mono: 'Cascadia Mono', 'Consolas', 'SF Mono', monospace;
+  --font-symbol: 'Segoe UI Symbol', 'Segoe UI', 'Apple Symbols', sans-serif;
+
+  /* Metrics */
+  --titlebar-h: 44px;
+  --tabstrip-h: 34px;
+  --toolbar-h: 78px;
+  --pane-notebooks-w: 200px;
+  --pane-sections-w: 190px;
+  --pane-pages-w: 236px;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --shadow-flyout: 0 6px 20px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.12);
+}

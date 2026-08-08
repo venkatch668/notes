@@ -1,0 +1,122 @@
+/**
+ * Bootstrap 5 retheme.
+ *
+ * Bootstrap supplies Reboot, the grid, utilities, forms, buttons, badges and
+ * progress bars. This file bends its design tokens to OneNote so those
+ * components arrive already looking like the rest of the app — the alternative
+ * (overriding Bootstrap rule-by-rule downstream) is what makes Bootstrap apps
+ * look like Bootstrap apps.
+ *
+ * Loaded after bootstrap.min.css and before app.css.
+ */
+
+:root,
+[data-bs-theme='light'] {
+  /* Brand → Bootstrap primary */
+  --bs-primary: #7719aa;
+  --bs-primary-rgb: 119, 25, 170;
+  --bs-primary-text-emphasis: #55117a;
+  --bs-primary-bg-subtle: #f3e8f9;
+  --bs-primary-border-subtle: #dcc2ea;
+
+  --bs-link-color: #7719aa;
+  --bs-link-color-rgb: 119, 25, 170;
+  --bs-link-hover-color: #55117a;
+  --bs-link-hover-color-rgb: 85, 17, 122;
+
+  /* Type — OneNote is a Segoe UI product */
+  --bs-body-font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --bs-body-font-size: 0.875rem;
+  --bs-body-color: #201f1e;
+  --bs-body-color-rgb: 32, 31, 30;
+  --bs-body-bg: #ffffff;
+  --bs-secondary-color: #605e5c;
+  --bs-tertiary-color: #a19f9d;
+
+  --bs-font-monospace: 'Cascadia Mono', 'Consolas', 'SF Mono', monospace;
+
+  /* Office chrome is square-ish, not pill-shaped */
+  --bs-border-radius: 4px;
+  --bs-border-radius-sm: 2px;
+  --bs-border-radius-lg: 6px;
+  --bs-border-radius-xl: 8px;
+  --bs-border-color: #e1dfdd;
+  --bs-border-color-translucent: rgba(0, 0, 0, 0.1);
+
+  --bs-secondary-bg: #f3f2f1;
+  --bs-tertiary-bg: #faf9f8;
+
+  --bs-focus-ring-color: rgba(119, 25, 170, 0.28);
+  --bs-focus-ring-width: 2px;
+}
+
+/* Buttons: Fluent proportions rather than Bootstrap's roomier defaults. */
+.btn {
+  --bs-btn-padding-y: 0.25rem;
+  --bs-btn-padding-x: 0.65rem;
+  --bs-btn-font-size: 0.8125rem;
+  --bs-btn-border-radius: var(--bs-border-radius);
+  --bs-btn-focus-box-shadow: 0 0 0 2px var(--bs-focus-ring-color);
+}
+
+.btn-primary {
+  --bs-btn-bg: #7719aa;
+  --bs-btn-border-color: #7719aa;
+  --bs-btn-hover-bg: #661592;
+  --bs-btn-hover-border-color: #661592;
+  --bs-btn-active-bg: #55117a;
+  --bs-btn-active-border-color: #55117a;
+}
+
+.btn-outline-secondary {
+  --bs-btn-color: #605e5c;
+  --bs-btn-border-color: #c8c6c4;
+  --bs-btn-hover-bg: #7719aa;
+  --bs-btn-hover-border-color: #7719aa;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: #7719aa;
+  --bs-btn-active-border-color: #7719aa;
+}
+
+/* Inputs: flat, thin border, purple focus — no glow. */
+.form-control {
+  --bs-border-color: #c8c6c4;
+  font-size: 0.8125rem;
+  padding: 0.28rem 0.55rem;
+}
+
+.form-control:focus {
+  border-color: #7719aa;
+  box-shadow: none;
+}
+
+/* Badges carry the task chips; size and color come from .chip in app.css. */
+.badge {
+  --bs-badge-padding-x: 0.4rem;
+  --bs-badge-padding-y: 0.16rem;
+  --bs-badge-font-size: 0.6875rem;
+  --bs-badge-font-weight: 600;
+}
+
+/* List groups back the notebook / section / page panes. */
+.list-group {
+  --bs-list-group-border-color: transparent;
+  --bs-list-group-item-padding-x: 0.75rem;
+  --bs-list-group-item-padding-y: 0.4rem;
+  --bs-list-group-action-hover-bg: rgba(0, 0, 0, 0.045);
+  --bs-list-group-action-color: var(--bs-body-color);
+  --bs-list-group-bg: transparent;
+}
+
+.progress {
+  --bs-progress-height: 6px;
+  --bs-progress-bg: #edebe9;
+  --bs-progress-bar-bg: #7719aa;
+  --bs-progress-border-radius: 3px;
+}
+
+/* Bootstrap's focus ring is the accessible default; keep it, tint it purple. */
+:focus-visible {
+  outline: 2px solid #7719aa;
+  outline-offset: 1px;
+}
