@@ -39,6 +39,19 @@ jobs:
           # Change to "/" if this ever moves to a custom root domain.
           BASE_PATH: /notes/
 
+          # Vite inlines VITE_* at build time, so these must be present here
+          # rather than configured at runtime. Set them under
+          # Settings → Secrets and variables → Actions.
+          #
+          # If they are absent the build still succeeds and the app ships in
+          # local mode (localStorage, no login) — which is the behaviour the
+          # published site has today. Auth and sync switch on only once all
+          # three are set.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          # e.g. https://work-notebook-api.onrender.com/api/v1
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3

@@ -1,21 +1,25 @@
 # Render blueprint — infrastructure as code.
 #
-# Deploying with this file rather than clicking through the dashboard means the
-# service definition is reviewable, diffable, and reproducible. Secrets are the
-# only thing not in here, by design.
+# Deploying from this file rather than clicking through the dashboard means the
+# service definition is reviewable, diffable and reproducible. Secrets are the
+# only thing deliberately not in here.
 #
-# Setup: Render → New → Blueprint → point at this repo, then fill the three
-# `sync: false` values from your Supabase project settings.
+# Setup: Render → New → Blueprint → point at this repo → fill the values marked
+# `sync: false` from your Supabase project.
 
 services:
   - type: web
     name: work-notebook-api
     runtime: python
     plan: free
-    region: singapore # closest to you; Supabase should be in the same region
+    # Supabase project is in ap-south-1 (Mumbai). Singapore is Render's closest
+    # region, which keeps the database round trip to roughly one hop.
+    region: singapore
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: ./start.sh
+    # `bash start.sh` rather than `./start.sh`: it works whether or not the
+    # executable bit survives the checkout.
+    startCommand: bash start.sh
     healthCheckPath: /health
     autoDeployTrigger: commit
 
@@ -26,21 +30,27 @@ services:
         value: INFO
       - key: PYTHON_VERSION
         value: "3.12.7"
+      # Free instances have 512 MB; two uvicorn workers fit comfortably.
       - key: WEB_CONCURRENCY
         value: "2"
 
       # Supabase → Settings → Database → Connection string → URI.
-      # Use the pooler host on port 6543: Render's free tier recycles
-      # instances, and a direct connection per instance exhausts Supabase's
-      # connection limit quickly.
+      # MUST be the pooler host on port 6543:
+      #   - the direct host (db.<ref>.supabase.co) is IPv6-only and Render is
+      #     IPv4, so it cannot resolve at all
+      #   - db.py detects 6543 and applies the PgBouncer-safe settings
+      # Remember to percent-encode special characters in the password
+      # (@ -> %40, ! -> %21).
       - key: DATABASE_URL
         sync: false
 
-      # Supabase → Settings → API
+      # Supabase → Settings → API → Project URL.
+      # The JWKS endpoint is derived from this; no API key of any kind is
+      # needed, because this service only *verifies* tokens.
       - key: SUPABASE_URL
         sync: false
-      - key: SUPABASE_JWT_SECRET
-        sync: false
 
+      # Where the browser app is served from. The GitHub Pages origin must be
+      # listed or every request from the deployed UI fails CORS preflight.
       - key: CORS_ORIGINS
         value: https://venkatch668.github.io,http://localhost:5173
