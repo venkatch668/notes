@@ -2,3 +2,18 @@ node_modules/
 dist/
 *.tsbuildinfo
 .DS_Store
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets. `.env.example` is a committed template and must stay trackable,
+# so match the real files exactly rather than globbing `.env.*`.
+.env
+.env.local
+.env.production
+**/.env
+**/.env.local
+**/.env.production

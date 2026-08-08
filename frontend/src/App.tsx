@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Block, Notebook, Page, PageSummary, SearchHit, Section } from './types/models';
 import type { RibbonTab } from './types/ui';
-import { api } from './api/localApi';
+import { api, offline, type SyncState } from './api';
 import { addDays, startOfWeek, todayKey } from './domain/dates';
 import { annotate, makeBlock } from './domain/parse';
 import { TitleBar, TabStrip, Toolbar, type RibbonActions } from './components/Chrome';
@@ -38,6 +38,10 @@ export default function App() {
   const [insightsOpen, setInsightsOpen] = useState(false);
 
   const isMobile = useMediaQuery(MOBILE_QUERY);
+  const [sync, setSync] = useState<{ state: SyncState; pending: number }>({
+    state: 'idle',
+    pending: 0,
+  });
   const [navOpen, setNavOpen] = useState(!isMobile);
 
   const [carry, setCarry] = useState<Array<{ page: PageSummary; block: Block }>>([]);
@@ -50,6 +54,16 @@ export default function App() {
   useEffect(() => {
     setNavOpen(!isMobile);
   }, [isMobile]);
+
+  // Surface sync state from the offline layer, when there is one.
+  useEffect(() => {
+    const layer = offline;
+    if (!layer) return;
+    layer.onStateChange = (state, pending) => setSync({ state, pending });
+    return () => {
+      layer.onStateChange = null;
+    };
+  }, []);
 
   // On a phone the drawer covers the note, so any navigation choice should
   // close it — otherwise every tap needs a second tap to see the result.
@@ -98,11 +112,27 @@ export default function App() {
 
   /* -------------------------------------------------------------- saving */
 
+  // Bumped on every edit so a save that lands late cannot overwrite newer
+  // state with the version stamp of an older one.
+  const revision = useRef(0);
+
   const changePage = useCallback((next: Page) => {
     setPage(next);
+    const rev = (revision.current += 1);
+
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
-      api.savePage(next).catch((e) => console.error(e));
+    saveTimer.current = window.setTimeout(async () => {
+      try {
+        const saved = await api.savePage(next);
+        // Adopt the server's timestamp so the following save is not rejected as
+        // stale. Only the stamp — never the blocks, which would clobber
+        // anything typed while the request was in flight.
+        if (saved && revision.current === rev) {
+          setPage((cur) => (cur && cur.id === saved.id ? { ...cur, updatedAt: saved.updatedAt } : cur));
+        }
+      } catch (err) {
+        console.error('Save failed', err);
+      }
     }, 400);
   }, []);
 
@@ -249,6 +279,8 @@ export default function App() {
         insightsOpen={insightsOpen}
         navOpen={navOpen}
         onToggleNav={() => setNavOpen((v) => !v)}
+        syncState={sync.state}
+        syncPending={sync.pending}
         onSearch={() => setSearchOpen(true)}
         onToggleAi={() => {
           setAiOpen((v) => !v);

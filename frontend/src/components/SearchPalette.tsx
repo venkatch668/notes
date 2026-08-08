@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SearchFilters, SearchHit } from '../types/models';
-import { api } from '../api/localApi';
+import { api } from '../api';
 import { formatShort } from '../domain/dates';
 import { Highlighted } from './Inline';
 

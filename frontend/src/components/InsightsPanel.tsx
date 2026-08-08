@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { WeeklyStats } from '../types/models';
-import { api } from '../api/localApi';
+import { api } from '../api';
 import { formatShort, startOfWeek, todayKey } from '../domain/dates';
 
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];

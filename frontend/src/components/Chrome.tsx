@@ -1,4 +1,30 @@
 import type { RibbonTab } from '../types/ui';
+import type { SyncState } from '../api';
+
+/** Shows where the user's writing currently lives. Silent when all is well. */
+function SyncPill({ state, pending }: { state: SyncState; pending: number }) {
+  if (state === 'idle' && pending === 0) return null;
+
+  const label =
+    state === 'offline'
+      ? pending
+        ? `Offline · ${pending} to sync`
+        : 'Offline'
+      : state === 'syncing'
+        ? 'Syncing…'
+        : state === 'conflict'
+          ? 'Updated elsewhere'
+          : state === 'error'
+            ? 'Sync problem'
+            : `${pending} to sync`;
+
+  return (
+    <span className={`syncpill syncpill--${state}`} title="Sync status">
+      <span className="syncpill__dot" aria-hidden />
+      {label}
+    </span>
+  );
+}
 
 /* ------------------------------------------------------------- Title bar */
 
@@ -11,6 +37,8 @@ export function TitleBar({
   onSearch,
   onToggleAi,
   onToggleInsights,
+  syncState = 'idle',
+  syncPending = 0,
 }: {
   notebookName: string;
   aiOpen: boolean;
@@ -20,6 +48,8 @@ export function TitleBar({
   onSearch: () => void;
   onToggleAi: () => void;
   onToggleInsights: () => void;
+  syncState?: SyncState;
+  syncPending?: number;
 }) {
   return (
     <header className="titlebar">
@@ -50,6 +80,7 @@ export function TitleBar({
       </div>
 
       <div className="titlebar__actions">
+        <SyncPill state={syncState} pending={syncPending} />
         <button
           type="button"
           className={`titlebar__btn titlebar__btn--wide ${insightsOpen ? 'titlebar__btn--on' : ''}`}

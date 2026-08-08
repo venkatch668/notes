@@ -25,7 +25,14 @@ export interface WorkspaceApi {
   /** Returns the daily page for `date`, creating it if absent (FR-1.1). */
   getOrCreateDaily(sectionId: string, date: string): Promise<Page>;
   createPage(sectionId: string, title: string): Promise<Page>;
-  savePage(page: Page): Promise<void>;
+  /**
+   * Persists a page and returns the stored version.
+   *
+   * Returning the page matters: the caller must adopt the server's new
+   * `updatedAt`, otherwise its next save still carries the old one and the
+   * optimistic-concurrency check rejects it as stale.
+   */
+  savePage(page: Page): Promise<Page>;
   deletePage(pageId: string): Promise<void>;
 
   createSection(notebookId: string, name: string): Promise<Section>;

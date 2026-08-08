@@ -1,0 +1,46 @@
+# Render blueprint — infrastructure as code.
+#
+# Deploying with this file rather than clicking through the dashboard means the
+# service definition is reviewable, diffable, and reproducible. Secrets are the
+# only thing not in here, by design.
+#
+# Setup: Render → New → Blueprint → point at this repo, then fill the three
+# `sync: false` values from your Supabase project settings.
+
+services:
+  - type: web
+    name: work-notebook-api
+    runtime: python
+    plan: free
+    region: singapore # closest to you; Supabase should be in the same region
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: ./start.sh
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: WEB_CONCURRENCY
+        value: "2"
+
+      # Supabase → Settings → Database → Connection string → URI.
+      # Use the pooler host on port 6543: Render's free tier recycles
+      # instances, and a direct connection per instance exhausts Supabase's
+      # connection limit quickly.
+      - key: DATABASE_URL
+        sync: false
+
+      # Supabase → Settings → API
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+
+      - key: CORS_ORIGINS
+        value: https://venkatch668.github.io,http://localhost:5173

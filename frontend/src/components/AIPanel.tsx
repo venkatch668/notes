@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { api } from '../api/localApi';
+import { api } from '../api';
 import { AiService, SUGGESTIONS, type Citation } from '../services/aiService';
 
 interface Msg {

@@ -236,13 +236,14 @@ export class LocalApi implements WorkspaceApi {
     return page;
   }
 
-  async savePage(page: Page): Promise<void> {
+  async savePage(page: Page): Promise<Page> {
     const d = get();
     const i = d.pages.findIndex((p) => p.id === page.id);
     const next = { ...page, updatedAt: Date.now() };
     if (i >= 0) d.pages[i] = next;
     else d.pages.push(next);
     persist();
+    return next;
   }
 
   async deletePage(pageId: string): Promise<void> {

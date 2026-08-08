@@ -1450,3 +1450,119 @@ mark {
     font-size: 12.5px;
   }
 }
+
+/* --------------------------------------------------------------- Sign-in */
+
+.authpage {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(119, 25, 170, 0.10), transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(180, 0, 158, 0.08), transparent 40%),
+    var(--grey-20);
+}
+
+.authcard {
+  width: min(400px, 100%);
+  padding: 28px;
+  border: 1px solid var(--grey-30);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: var(--shadow-flyout);
+}
+
+.authcard__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: var(--onenote-purple);
+}
+
+.authcard__brand .titlebar__logo {
+  background: var(--onenote-purple);
+  color: #fff;
+}
+
+.authcard__title {
+  margin: 0 0 4px;
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.authcard__sub {
+  margin: 0 0 20px;
+  color: var(--grey-130);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.authcard__label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--grey-130);
+}
+
+.authcard__error,
+.authcard__notice {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.authcard__error {
+  background: var(--prio-high-bg);
+  color: var(--prio-high);
+  border: 1px solid rgba(209, 52, 56, 0.25);
+}
+
+.authcard__notice {
+  background: var(--onenote-purple-light);
+  color: var(--onenote-purple-darker);
+  border: 1px solid var(--onenote-purple-light);
+}
+
+.authcard__switch {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--grey-130);
+}
+
+/* ---------------------------------------------------------- Sync status */
+
+.syncpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.syncpill__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6bd97f;
+}
+
+.syncpill--offline .syncpill__dot { background: #ffc83d; }
+.syncpill--syncing .syncpill__dot { background: #7fd3ff; animation: pulse 1s ease-in-out infinite; }
+.syncpill--conflict .syncpill__dot,
+.syncpill--error .syncpill__dot { background: #ff8a80; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
