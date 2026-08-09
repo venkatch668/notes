@@ -22,6 +22,45 @@ import type {
 
 export type TokenProvider = () => Promise<string | null>;
 
+/* ------------------------------------------------------------------ *
+ * Wire-format normalisation                                           *
+ *                                                                     *
+ * The API serialises timestamps as ISO-8601 strings; the app models   *
+ * them as epoch milliseconds. Converting here, at the transport       *
+ * boundary, keeps a single representation everywhere above — the      *
+ * alternative is every component remembering which shape it holds,    *
+ * and `Intl.DateTimeFormat` throwing RangeError when one slips        *
+ * through.                                                            *
+ * ------------------------------------------------------------------ */
+
+function toEpochMs(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const ms = Date.parse(value);
+    if (!Number.isNaN(ms)) return ms;
+  }
+  // Never return NaN: a bad timestamp should degrade to "now" rather than
+  // crash the render of an otherwise fine note.
+  return Date.now();
+}
+
+function normalizeBlock<T extends Record<string, unknown>>(block: T): T {
+  return 'updatedAt' in block ? { ...block, updatedAt: toEpochMs(block.updatedAt) } : block;
+}
+
+function normalizePage(raw: Page): Page {
+  return {
+    ...raw,
+    createdAt: toEpochMs(raw.createdAt),
+    updatedAt: toEpochMs(raw.updatedAt),
+    blocks: (raw.blocks ?? []).map((b) => normalizeBlock(b as unknown as Record<string, unknown>) as unknown as Block),
+  };
+}
+
+function normalizeSummary(raw: PageSummary): PageSummary {
+  return { ...raw, updatedAt: toEpochMs(raw.updatedAt) };
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -102,36 +141,46 @@ export class HttpApi implements WorkspaceApi {
 
   /* ---------------------------------------------------------- Pages */
 
-  listPages(sectionId: string): Promise<PageSummary[]> {
-    return this.request(`/sections/${sectionId}/pages`);
+  async listPages(sectionId: string): Promise<PageSummary[]> {
+    const rows = await this.request<PageSummary[]>(`/sections/${sectionId}/pages`);
+    return rows.map(normalizeSummary);
   }
 
   getPage(pageId: string): Promise<Page | null> {
-    return this.request<Page>(`/pages/${pageId}`).catch((err) => {
-      if (err instanceof ApiError && err.status === 404) return null;
-      throw err;
-    });
+    return this.request<Page>(`/pages/${pageId}`)
+      .then(normalizePage)
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      });
   }
 
   /** The server owns "one note per day", so the section argument is advisory. */
-  getOrCreateDaily(_sectionId: string, date: string): Promise<Page> {
-    return this.request(`/daily/${date}`);
+  async getOrCreateDaily(_sectionId: string, date: string): Promise<Page> {
+    return normalizePage(await this.request<Page>(`/daily/${date}`));
   }
 
-  createPage(sectionId: string, title: string): Promise<Page> {
-    return this.request('/pages', { method: 'POST', body: JSON.stringify({ sectionId, title }) });
+  async createPage(sectionId: string, title: string): Promise<Page> {
+    return normalizePage(
+      await this.request<Page>('/pages', {
+        method: 'POST',
+        body: JSON.stringify({ sectionId, title }),
+      }),
+    );
   }
 
   async savePage(page: Page): Promise<Page> {
-    return this.request<Page>(`/pages/${page.id}`, {
+    return normalizePage(
+      await this.request<Page>(`/pages/${page.id}`, {
       method: 'PUT',
       body: JSON.stringify({
         title: page.title,
         blocks: page.blocks,
         // Optimistic concurrency: tells the server which version we edited.
         baseUpdatedAt: new Date(page.updatedAt).toISOString(),
+        }),
       }),
-    });
+    );
   }
 
   async deletePage(pageId: string): Promise<void> {
@@ -149,8 +198,14 @@ export class HttpApi implements WorkspaceApi {
     return this.request(`/search?${params}`);
   }
 
-  pendingBefore(date: string, limit = 20): Promise<Array<{ page: PageSummary; block: Block }>> {
-    return this.request(`/tasks/pending?before=${date}&limit=${limit}`);
+  async pendingBefore(
+    date: string,
+    limit = 20,
+  ): Promise<Array<{ page: PageSummary; block: Block }>> {
+    const rows = await this.request<Array<{ page: PageSummary; block: Block }>>(
+      `/tasks/pending?before=${date}&limit=${limit}`,
+    );
+    return rows.map((r) => ({ page: normalizeSummary(r.page), block: r.block }));
   }
 
   weeklyStats(weekStart: string): Promise<WeeklyStats> {

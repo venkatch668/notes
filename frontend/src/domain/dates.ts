@@ -59,16 +59,32 @@ const LONG = new Intl.DateTimeFormat(undefined, {
 
 const SHORT = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
 
+/* Formatters are defensive on purpose. `Intl.DateTimeFormat.format` throws
+   RangeError on an invalid date, and it is called during render — so one bad
+   value from storage or the network takes down the entire page rather than
+   showing one wrong label. Degrading to an empty string is always better. */
+
+function isValid(d: Date): boolean {
+  return !Number.isNaN(d.getTime());
+}
+
 export function formatLong(key: string): string {
-  return LONG.format(fromKey(key));
+  const d = fromKey(key);
+  return isValid(d) ? LONG.format(d) : key;
 }
 
 export function formatShort(key: string): string {
-  return SHORT.format(fromKey(key));
+  const d = fromKey(key);
+  return isValid(d) ? SHORT.format(d) : key;
 }
 
-export function formatTime(ts: number): string {
-  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(ts);
+export function formatTime(ts: number | string): string {
+  // Accepts a string too: the API sends ISO timestamps and, although the HTTP
+  // client normalises them, cached data written by an older build may still
+  // hold the raw string.
+  const d = typeof ts === 'string' ? new Date(ts) : new Date(ts);
+  if (!isValid(d)) return '';
+  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(d);
 }
 
 export function relativeLabel(key: string): string | null {
