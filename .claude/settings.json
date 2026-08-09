@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Read(//c/venkat/backend/app/**)"
+    ]
+  }
+}

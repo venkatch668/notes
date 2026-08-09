@@ -8,10 +8,36 @@
 import type { Block, BlockType, Classification, Priority, Task } from '../types/models';
 import { parseDuration, resolveDueToken } from './dates';
 
-let seq = 0;
+/**
+ * Block identity.
+ *
+ * Must be a real UUID: block ids are the primary key in Postgres, so the API
+ * rejects anything else with 422 and the save silently fails. The previous
+ * scheme (`b` + base36 timestamp) worked only because local mode never
+ * validated ids.
+ *
+ * Client-generated on purpose — the editor needs a stable identity before the
+ * block has ever reached the server, which is what makes offline editing and
+ * scroll-to-block work across a save.
+ */
 export function newId(): string {
-  seq += 1;
-  return `b${Date.now().toString(36)}${seq.toString(36)}`;
+  // Available in every secure context (https and localhost). The fallback
+  // covers plain-http dev servers and older browsers.
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  const bytes = new Uint8Array(16);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < 16; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10xx
+
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 export function emptyTask(): Task {
