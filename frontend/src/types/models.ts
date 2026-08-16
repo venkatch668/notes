@@ -32,6 +32,21 @@ export interface Task {
   reminderAt: string | null;
   /** Source date when this task was carried forward from an earlier day. */
   carriedFrom: string | null;
+  /**
+   * Block id this task moved to during a day review.
+   *
+   * Set on the *source* block, which is what settles it: a task is only a
+   * carry-forward candidate while it is unchecked, not forwarded and not
+   * dropped. Without this the same task is re-offered every single morning,
+   * because completing it on today's copy says nothing about the original.
+   */
+  forwardedTo: string | null;
+  /** Hops so far. 0 = authored here; drives the age warning on the chip. */
+  carryCount: number;
+  /** Explicitly abandoned, so "open" can mean live work rather than debris. */
+  droppedAt: number | null;
+  /** Origin block id, preserved across every hop, so a merge can match on it. */
+  originId: string | null;
 }
 
 /** Type-specific payload. Adding a block type means adding a variant here. */
@@ -97,6 +112,70 @@ export interface PageSummary {
   preview: string;
   /** 0–4, drives the activity dots in the page list. */
   activity: number;
+}
+
+/**
+ * One day's close: what you meant to do, and what happened.
+ *
+ * Deliberately not stored as blocks in the note. The note is free-form text you
+ * own; this is structured data the retro reads, and mixing them would mean
+ * parsing prose to answer "did the week match the intent".
+ */
+export interface DayReflection {
+  /** ISO day string. Unique per user — the day *is* the identity. */
+  date: string;
+  intent: string;
+  wentWell: string;
+  blockers: string;
+  /** Snapshots taken at close time, not live aggregates. Editing the note a */
+  focusMinutes: number;
+  /** month later must not rewrite what that day felt like. */
+  tasksDone: number;
+  tasksOpen: number;
+}
+
+/** A focus commitment for a week. `tag` is what makes it measurable. */
+export interface Goal {
+  text: string;
+  tag: string | null;
+  targetMin: number;
+}
+
+export interface GoalScore extends Goal {
+  /** Counted from focus-timer totals, never generated. */
+  actualMin: number;
+}
+
+export interface WeekSummary {
+  weekStart: string;
+  narrative: string;
+  highlights: string[];
+  dropped: string[];
+  focusByTag: Record<string, number>;
+  /** Goals for the week *after* `weekStart`. */
+  goals: Goal[];
+  /** How the goals set at the previous close actually went. */
+  goalScores: GoalScore[];
+  generatedAt: string | null;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+/**
+ * A pointer back to the block an answer came from.
+ *
+ * Lives here rather than in the AI service so the API layer can name it
+ * without importing upwards into a service — the dependency only ever points
+ * from services down to the domain.
+ */
+export interface Citation {
+  date: string | null;
+  pageId: string;
+  blockId: string;
+  label: string;
 }
 
 export interface SearchFilters {

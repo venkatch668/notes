@@ -16,10 +16,18 @@ from datetime import date as Date
 from fastapi import APIRouter, Query, status
 
 from app.api.deps import CurrentUserDep, DbSession
+from app.config import get_settings
 from app.repositories import analytics as analytics_repo
+from app.repositories import retro as retro_repo
 from app.repositories import workspace as repo
 from app.schemas import (
+    AiStatusOut,
+    ChatRequest,
+    ChatResponse,
     DailyClaim,
+    DayReflectionOut,
+    DayReflectionSave,
+    GoalsSave,
     NotebookCreate,
     NotebookOut,
     PageCreate,
@@ -31,7 +39,11 @@ from app.schemas import (
     SectionCreate,
     SectionOut,
     WeeklyStatsOut,
+    WeekSummaryOut,
 )
+from app.services import ai as ai_service
+from app.services import ai_tools
+from app.services import retro as retro_service
 from app.services import search as search_service
 from app.services import workspace as service
 
@@ -176,3 +188,81 @@ async def weekly_stats(session: DbSession, user: CurrentUserDep, week_start: Dat
     week_end = week_start + timedelta(days=6)
     stats = await analytics_repo.weekly_stats(session, user.id, week_start, week_end)
     return {"from": week_start, "to": week_end, **stats}
+
+
+# -------------------------------------------------------------- Reflections
+
+
+@router.get("/reflections/{day}", response_model=DayReflectionOut | None)
+async def get_reflection(day: Date, session: DbSession, user: CurrentUserDep):
+    """Null rather than 404 when the day has not been closed yet — "no
+    reflection" is a normal state, not an error the client should handle."""
+    return await retro_repo.get_reflection(session, user.id, day)
+
+
+@router.put("/reflections/{day}", response_model=DayReflectionOut)
+async def save_reflection(
+    day: Date, payload: DayReflectionSave, session: DbSession, user: CurrentUserDep
+):
+    return await retro_repo.save_reflection(
+        session, user.id, day, payload.model_dump()
+    )
+
+
+# -------------------------------------------------------------------- Retro
+
+
+@router.get("/retro/weekly", response_model=WeekSummaryOut | None)
+async def get_weekly_retro(session: DbSession, user: CurrentUserDep, week_start: Date):
+    return await retro_repo.get_week_summary(session, user.id, week_start)
+
+
+@router.post("/retro/weekly/generate", response_model=WeekSummaryOut)
+async def generate_weekly_retro(session: DbSession, user: CurrentUserDep, week_start: Date):
+    """Writes the retro for a week. Costs a model call, so it is a POST the
+    client makes deliberately rather than something a GET triggers."""
+    return await retro_service.generate_weekly(session, user.id, week_start)
+
+
+@router.put("/retro/weekly/goals", response_model=WeekSummaryOut)
+async def set_weekly_goals(
+    payload: GoalsSave, session: DbSession, user: CurrentUserDep, week_start: Date
+):
+    """Focus goals for the week *after* `week_start` — set at the close of one
+    week, scored at the close of the next."""
+    # by_alias so the JSONB holds camelCase ("targetMin"), matching what the
+    # scorer reads and what the frontend sends. Dumping snake_case here would
+    # make every goal score zero and give no clue why.
+    return await retro_repo.save_week_summary(
+        session,
+        user.id,
+        week_start,
+        {"goals": [g.model_dump(by_alias=True) for g in payload.goals]},
+    )
+
+
+# ------------------------------------------------------------------ AI chat
+
+
+@router.get("/ai/status", response_model=AiStatusOut)
+async def ai_status():
+    """Lets the client choose a provider before asking anything, so a server
+    with no key degrades to the local one instead of failing a question."""
+    settings = get_settings()
+    return {
+        "enabled": settings.ai_enabled,
+        "model": settings.gemini_model if settings.ai_enabled else None,
+    }
+
+
+@router.post("/ai/chat", response_model=ChatResponse)
+async def ai_chat(payload: ChatRequest, session: DbSession, user: CurrentUserDep):
+    tools = ai_tools.build(session, user.id)
+    text, gathered = await ai_service.generate(
+        ai_service.to_contents([m.model_dump() for m in payload.messages]),
+        tools=tools,
+    )
+    # Citations are derived from what the tools actually returned, never from
+    # the model's own output — a hallucinated block id is indistinguishable
+    # from a real one until you click it and land nowhere.
+    return {"text": text, "citations": ai_tools.citations_from(gathered)}

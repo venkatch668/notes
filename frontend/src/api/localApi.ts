@@ -9,6 +9,9 @@
 import type { WorkspaceApi } from './types';
 import type {
   Block,
+  Citation,
+  DayReflection,
+  Goal,
   Notebook,
   Page,
   PageSummary,
@@ -16,8 +19,9 @@ import type {
   SearchHit,
   Section,
   WeeklyStats,
+  WeekSummary,
 } from '../types/models';
-import { displayText, newId } from '../domain/parse';
+import { displayText, newId, taskOf } from '../domain/parse';
 import { addDays, rangeDays, todayKey } from '../domain/dates';
 import { seedWorkspace } from '../mock/seed';
 
@@ -28,6 +32,10 @@ interface Db {
   notebooks: Notebook[];
   sections: Section[];
   pages: Page[];
+  // Optional: a store written by an older build has neither, and defaulting
+  // them on read is cheaper than a migration for two arrays.
+  reflections?: DayReflection[];
+  weeks?: WeekSummary[];
 }
 
 function load(): Db {
@@ -323,21 +331,152 @@ export class LocalApi implements WorkspaceApi {
     return hits.sort((a, b) => b.score - a.score || (b.date ?? '').localeCompare(a.date ?? '')).slice(0, 100);
   }
 
+  /**
+   * Carry-forward candidates: tasks that are still genuinely live.
+   *
+   * A task leaves this list three ways — checked off, forwarded to a later day,
+   * or explicitly dropped. Only `done` used to count, which is why a task
+   * carried on Monday kept being offered again every morning for the rest of
+   * the week: completing the copy never settled the original.
+   *
+   * Ordered by due date first so the overdue work is what you see, then by
+   * recency. The limit is applied after sorting, not while collecting.
+   */
   async pendingBefore(date: string, limit = 12): Promise<Array<{ page: PageSummary; block: Block }>> {
     const out: Array<{ page: PageSummary; block: Block }> = [];
-    const pages = get()
-      .pages.filter((p) => p.date && p.date < date)
-      .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+    const pages = get().pages.filter((p) => p.date && p.date < date);
 
     for (const page of pages) {
       for (const block of page.blocks) {
-        if (block.type === 'CHECKBOX' && block.task && !block.task.done) {
-          out.push({ page: summarize(page), block });
-          if (out.length >= limit) return out;
-        }
+        if (block.type !== 'CHECKBOX') continue;
+        const task = taskOf(block);
+        if (task.done || task.forwardedTo || task.droppedAt) continue;
+        out.push({ page: summarize(page), block });
       }
     }
-    return out;
+
+    // Undated tasks sort after dated ones rather than in front of them, which
+    // is what a plain string compare against null would do.
+    const dueKey = (b: Block) => taskOf(b).due ?? '9999-12-31';
+    out.sort(
+      (a, b) =>
+        dueKey(a.block).localeCompare(dueKey(b.block)) ||
+        (b.page.date ?? '').localeCompare(a.page.date ?? ''),
+    );
+
+    return out.slice(0, limit);
+  }
+
+  /* ----------------------------------------------------- Retrospection */
+
+  async getReflection(date: string): Promise<DayReflection | null> {
+    return get().reflections?.find((r) => r.date === date) ?? null;
+  }
+
+  async saveReflection(reflection: DayReflection): Promise<DayReflection> {
+    const store = get();
+    store.reflections = [
+      ...(store.reflections ?? []).filter((r) => r.date !== reflection.date),
+      reflection,
+    ];
+    persist();
+    return reflection;
+  }
+
+  async getWeekSummary(weekStart: string): Promise<WeekSummary | null> {
+    return get().weeks?.find((w) => w.weekStart === weekStart) ?? null;
+  }
+
+  /**
+   * Local mode has no model, so the narrative is assembled from the numbers.
+   *
+   * Honest about what it is rather than pretending: the counted facts are the
+   * same ones the hosted retro is given, just without the prose written around
+   * them. Better than an empty panel and better than a fake summary.
+   */
+  async generateWeekSummary(weekStart: string): Promise<WeekSummary> {
+    const stats = await this.weeklyStats(weekStart);
+    const weekEnd = addDays(weekStart, 6);
+    const pages = get().pages.filter((p) => p.date && p.date >= weekStart && p.date <= weekEnd);
+
+    const focusByTag: Record<string, number> = {};
+    const highlights: string[] = [];
+    const dropped: string[] = [];
+
+    for (const page of pages) {
+      for (const block of page.blocks) {
+        if (block.type !== 'CHECKBOX') continue;
+        const task = taskOf(block);
+        if (task.actualMin) {
+          for (const tag of block.tags) {
+            focusByTag[tag] = (focusByTag[tag] ?? 0) + task.actualMin;
+          }
+        }
+        if (task.done && highlights.length < 5) highlights.push(displayText(block));
+        if (task.droppedAt && dropped.length < 5) dropped.push(displayText(block));
+      }
+    }
+
+    const pct = stats.tasksTotal ? Math.round((stats.tasksDone / stats.tasksTotal) * 100) : 0;
+    const previous = await this.getWeekSummary(addDays(weekStart, -7));
+    const goals = previous?.goals ?? [];
+
+    const summary: WeekSummary = {
+      weekStart,
+      narrative: [
+        `You completed ${stats.tasksDone} of ${stats.tasksTotal} tasks (${pct}%).`,
+        stats.actualMin
+          ? `You logged ${Math.round(stats.actualMin / 60)}h of focused time against ${Math.round(stats.estimateMin / 60)}h estimated.`
+          : 'No focused time was logged this week — start a timer on a task to change that.',
+        stats.carriedForward ? `${stats.carriedForward} task(s) carried forward.` : '',
+        'Connect the backend with a Gemini key for a written retrospective.',
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+      highlights,
+      dropped,
+      focusByTag,
+      goals: (await this.getWeekSummary(weekStart))?.goals ?? [],
+      goalScores: goals.map((g) => ({ ...g, actualMin: focusByTag[g.tag ?? ''] ?? 0 })),
+      generatedAt: new Date().toISOString(),
+    };
+
+    const store = get();
+    store.weeks = [...(store.weeks ?? []).filter((w) => w.weekStart !== weekStart), summary];
+    persist();
+    return summary;
+  }
+
+  async saveGoals(weekStart: string, goals: Goal[]): Promise<WeekSummary> {
+    const store = get();
+    const existing = store.weeks?.find((w) => w.weekStart === weekStart);
+    const next: WeekSummary = existing
+      ? { ...existing, goals }
+      : {
+          weekStart,
+          narrative: '',
+          highlights: [],
+          dropped: [],
+          focusByTag: {},
+          goals,
+          goalScores: [],
+          generatedAt: null,
+        };
+    store.weeks = [...(store.weeks ?? []).filter((w) => w.weekStart !== weekStart), next];
+    persist();
+    return next;
+  }
+
+  /* ---------------------------------------------------------------- AI */
+
+  async aiEnabled(): Promise<boolean> {
+    // No backend, so no key can be held safely. The caller falls back to the
+    // local extractive provider.
+    return false;
+  }
+
+  async chat(): Promise<{ text: string; citations: Citation[] }> {
+    throw new Error('The hosted assistant needs the backend. Using local answers instead.');
   }
 
   async weeklyStats(weekStart: string): Promise<WeeklyStats> {

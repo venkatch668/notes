@@ -1,10 +1,9 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ChatMessage, Citation } from '../types/models';
 import { api } from '../api';
-import { AiService, SUGGESTIONS, type Citation } from '../services/aiService';
+import { AiService, SUGGESTIONS } from '../services/aiService';
 
-interface Msg {
-  role: 'user' | 'assistant';
-  text: string;
+interface Msg extends ChatMessage {
   citations?: Citation[];
 }
 
@@ -13,19 +12,28 @@ export function AIPanel({ onOpenCitation }: { onOpenCitation: (c: Citation) => v
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [hosted, setHosted] = useState<boolean | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    api.aiEnabled().then(setHosted).catch(() => setHosted(false));
+  }, []);
 
   const ask = async (question: string) => {
     if (!question.trim() || busy) return;
-    setMessages((m) => [...m, { role: 'user', text: question }]);
+
+    // The whole thread is sent, not just this question — that is what makes a
+    // follow-up like "and the week before?" resolvable.
+    const thread: Msg[] = [...messages, { role: 'user', text: question }];
+    setMessages(thread);
     setInput('');
     setBusy(true);
     try {
-      const answer = await service.ask(question);
-      setMessages((m) => [...m, { role: 'assistant', text: answer.text, citations: answer.citations }]);
+      const answer = await service.chat(thread.map(({ role, text }) => ({ role, text })));
+      setMessages([...thread, { role: 'assistant', text: answer.text, citations: answer.citations }]);
     } catch (err) {
-      setMessages((m) => [
-        ...m,
+      setMessages([
+        ...thread,
         { role: 'assistant', text: `Could not answer that: ${(err as Error).message}` },
       ]);
     } finally {
@@ -40,6 +48,16 @@ export function AIPanel({ onOpenCitation }: { onOpenCitation: (c: Citation) => v
     <aside className="aipanel" aria-label="AI assistant">
       <div className="aipanel__head">
         <span>✨ Assistant</span>
+        {messages.length > 0 && (
+          <button
+            type="button"
+            className="linkbtn"
+            onClick={() => setMessages([])}
+            disabled={busy}
+          >
+            New conversation
+          </button>
+        )}
       </div>
 
       <div className="aipanel__body" ref={bodyRef}>
@@ -47,7 +65,7 @@ export function AIPanel({ onOpenCitation }: { onOpenCitation: (c: Citation) => v
           <>
             <div className="aimsg aimsg--bot">
               Ask about anything you have written. I search your notes first, then answer from what I
-              find.
+              find — and you can follow up without repeating yourself.
             </div>
             {SUGGESTIONS.map((s) => (
               <button key={s} type="button" className="aisuggest" onClick={() => ask(s)}>
@@ -72,7 +90,7 @@ export function AIPanel({ onOpenCitation }: { onOpenCitation: (c: Citation) => v
           </div>
         ))}
 
-        {busy && <div className="aimsg aimsg--bot">Searching your notes…</div>}
+        {busy && <div className="aimsg aimsg--bot">Reading your notes…</div>}
       </div>
 
       <div className="aipanel__foot">
@@ -89,8 +107,11 @@ export function AIPanel({ onOpenCitation }: { onOpenCitation: (c: Citation) => v
       </div>
 
       <div className="aipanel__note">
-        Running on the local extractive provider — answers are assembled from your own notes, on
-        device, with no network call. A hosted model can be configured once the backend lands.
+        {hosted === null
+          ? 'Checking which model is available…'
+          : hosted
+            ? 'Answers come from a hosted model reading your notes through a read-only tool layer. It can search and count; it cannot edit anything.'
+            : 'Running on the local extractive provider — answers are assembled from your own notes, on device, with no network call. Configure GEMINI_API_KEY on the backend for conversational answers.'}
       </div>
     </aside>
   );

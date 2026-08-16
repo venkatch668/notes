@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Block } from '../types/models';
 import { annotate, applyShortcuts, displayText, parsePastedText } from '../domain/parse';
 import { caretOffset, offsetFromPoint, setCaret } from '../lib/caret';
+import { formatElapsed } from '../lib/useFocusTimer';
 import { Inline } from './Inline';
 import { TaskChips } from './Chips';
 
@@ -20,6 +21,9 @@ export interface BlockRowProps {
   onFocusBlock: (id: string) => void;
   onPasteBlocks: (index: number, blocks: Block[]) => void;
   onNavigate: (index: number, dir: -1 | 1) => void;
+  /** Live seconds when this block owns the focus timer, null otherwise. */
+  timerSec: number | null;
+  onToggleTimer: (blockId: string) => void;
 }
 
 function editableClass(block: Block): string {
@@ -36,12 +40,39 @@ export function BlockRow(props: BlockRowProps) {
   const [editing, setEditing] = useState(false);
   const pendingCaret = useRef<number | null>(null);
 
-  // The contenteditable is uncontrolled while focused: React must not rewrite
-  // its child nodes under the caret. We only push text in when not editing.
+  // The contenteditable is uncontrolled while focused: every keystroke is
+  // typed straight into the DOM by the browser, then echoed up through
+  // `commit`. React must never read that echo back and rewrite the DOM with
+  // it — under fast typing, renders batch and this effect can run with a
+  // `block.text` prop that is one keystroke stale while the DOM already has
+  // the newer character. Comparing `el.textContent !== block.text` in that
+  // window looks like a real mismatch, forces a rewrite, and strands the
+  // caret at the wrong offset — the next keystrokes land in the wrong place
+  // and read as duplicated/scrambled text.
+  //
+  // So a DOM rewrite only happens when explicitly requested via
+  // `forceSync` — entering edit mode, or a shortcut rewriting the text (e.g.
+  // "# " -> a heading) — never as a reaction to the prop simply changing.
+  const forceSync = useRef(true);
+
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el || !editing) return;
-    if (el.textContent !== block.text) el.textContent = block.text;
+    if (forceSync.current) {
+      if (el.textContent !== block.text) el.textContent = block.text;
+      forceSync.current = false;
+      // Focus synchronously, in the same commit that swapped this block into
+      // edit mode — not a `requestAnimationFrame` later. A deferred focus
+      // leaves a whole extra frame where nothing (or the block just left) has
+      // focus; any keystroke typed in that window — most commonly hitting
+      // Enter and immediately continuing to type the next line — lands on
+      // the wrong element and either re-appends onto the old block's already
+      // trimmed text (reads as duplication) or gets silently dropped.
+      if (document.activeElement !== el) el.focus();
+      setCaret(el, pendingCaret.current ?? block.text.length);
+      pendingCaret.current = null;
+      return;
+    }
     if (pendingCaret.current !== null) {
       setCaret(el, pendingCaret.current);
       pendingCaret.current = null;
@@ -50,16 +81,9 @@ export function BlockRow(props: BlockRowProps) {
 
   useEffect(() => {
     if (autoFocusId !== block.id) return;
-    const el = ref.current;
-    if (!el) return;
+    if (!ref.current) return;
+    forceSync.current = true;
     setEditing(true);
-    // Focus after the swap to the editable node has committed.
-    requestAnimationFrame(() => {
-      const node = ref.current;
-      if (!node) return;
-      node.focus();
-      setCaret(node, node.textContent?.length ?? 0);
-    });
   }, [autoFocusId, block.id]);
 
   const commit = (text: string) => {
@@ -68,6 +92,7 @@ export function BlockRow(props: BlockRowProps) {
     if (shortcut !== next) {
       next = shortcut;
       pendingCaret.current = next.text.length;
+      forceSync.current = true; // the shortcut rewrote text; the DOM needs it too
     }
     props.onChange(next);
   };
@@ -144,24 +169,27 @@ export function BlockRow(props: BlockRowProps) {
     const el = ref.current;
     const offset = el ? offsetFromPoint(el, e.clientX, e.clientY) : null;
     pendingCaret.current = offset ?? block.text.length;
+    forceSync.current = true;
     setEditing(true);
-    requestAnimationFrame(() => {
-      const node = ref.current;
-      if (!node) return;
-      node.focus();
-      if (pendingCaret.current !== null) {
-        setCaret(node, pendingCaret.current);
-        pendingCaret.current = null;
-      }
-    });
   };
 
   const shown = displayText(block);
   const placeholder =
     props.isLast && !block.text ? "Type here. '#' heading, '-' list, '[]' task, '/' for blocks" : '';
 
+  // Different `key`s force React to unmount/remount this node when `editing`
+  // flips, rather than patching one shared DOM node in place. The editing
+  // branch writes its text imperatively (`el.textContent = ...`, outside
+  // React's view — see the layout effect above); the read branch renders
+  // text as real JSX children via `<Inline>`. Without distinct keys, React
+  // reconciles both branches as the same node: it never tracked the
+  // imperative text as a child, so switching back to the read branch just
+  // *appends* the `<Inline>` output next to the leftover manual text node
+  // instead of replacing it — the block's text visibly duplicates the
+  // instant you finish editing it.
   const body = editing ? (
     <div
+      key="edit"
       ref={ref}
       className={editableClass(block)}
       contentEditable
@@ -176,6 +204,7 @@ export function BlockRow(props: BlockRowProps) {
     />
   ) : (
     <div
+      key="read"
       ref={ref}
       className={editableClass(block)}
       data-placeholder={placeholder}
@@ -240,6 +269,20 @@ export function BlockRow(props: BlockRowProps) {
           onClick={() => props.onToggle(index)}
         >
           ✓
+        </button>
+      )}
+
+      {/* Hidden on a finished task: there is nothing left to spend time on,
+          and a stray click would log minutes against completed work. */}
+      {block.type === 'CHECKBOX' && !block.task?.done && (
+        <button
+          type="button"
+          className={`focusbtn ${props.timerSec !== null ? 'focusbtn--on' : ''}`}
+          title={props.timerSec !== null ? 'Stop the timer' : 'Start focusing on this'}
+          aria-label={props.timerSec !== null ? 'Stop focus timer' : 'Start focus timer'}
+          onClick={() => props.onToggleTimer(block.id)}
+        >
+          {props.timerSec !== null ? `■ ${formatElapsed(props.timerSec)}` : '▶'}
         </button>
       )}
 

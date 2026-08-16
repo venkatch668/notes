@@ -48,9 +48,22 @@ export function TaskChips({ block }: { block: Block }) {
   }
 
   if (t?.carriedFrom) {
+    // Age is the signal that matters once a task has hopped more than once: a
+    // task carried five times is not behind schedule, it is not going to
+    // happen, and it should look different from yesterday's leftovers.
+    const hops = t.carryCount ?? 0;
+    const stale = hops >= 5;
     chips.push(
-      <span key="cf" className="badge rounded-pill chip chip--carried" title={`Carried forward from ${t.carriedFrom}`}>
-        ↷ {formatShort(t.carriedFrom)}
+      <span
+        key="cf"
+        className={`badge rounded-pill chip chip--carried ${stale ? 'chip--stale' : ''}`}
+        title={
+          hops >= 2
+            ? `Carried ${hops} times, first written ${formatShort(t.carriedFrom)}`
+            : `Carried forward from ${t.carriedFrom}`
+        }
+      >
+        ↷ {hops >= 2 ? `${hops}×` : formatShort(t.carriedFrom)}
       </span>,
     );
   }

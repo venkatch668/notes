@@ -12,6 +12,10 @@ import type { WorkspaceApi } from './types';
 import { newId } from '../domain/parse';
 import type {
   Block,
+  ChatMessage,
+  Citation,
+  DayReflection,
+  Goal,
   Notebook,
   Page,
   PageSummary,
@@ -19,6 +23,7 @@ import type {
   SearchHit,
   Section,
   WeeklyStats,
+  WeekSummary,
 } from '../types/models';
 
 export type TokenProvider = () => Promise<string | null>;
@@ -220,6 +225,54 @@ export class HttpApi implements WorkspaceApi {
 
   weeklyStats(weekStart: string): Promise<WeeklyStats> {
     return this.request(`/stats/weekly?week_start=${weekStart}`);
+  }
+
+  /* --------------------------------------------------- Retrospection */
+
+  getReflection(date: string): Promise<DayReflection | null> {
+    return this.request(`/reflections/${date}`);
+  }
+
+  saveReflection(reflection: DayReflection): Promise<DayReflection> {
+    // The date identifies the row and travels in the path, so it is dropped
+    // from the body — two sources for one key is how they end up disagreeing.
+    const { date, ...body } = reflection;
+    return this.request(`/reflections/${date}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getWeekSummary(weekStart: string): Promise<WeekSummary | null> {
+    return this.request(`/retro/weekly?week_start=${weekStart}`);
+  }
+
+  generateWeekSummary(weekStart: string): Promise<WeekSummary> {
+    return this.request(`/retro/weekly/generate?week_start=${weekStart}`, { method: 'POST' });
+  }
+
+  saveGoals(weekStart: string, goals: Goal[]): Promise<WeekSummary> {
+    return this.request(`/retro/weekly/goals?week_start=${weekStart}`, {
+      method: 'PUT',
+      body: JSON.stringify({ goals }),
+    });
+  }
+
+  /* -------------------------------------------------------------- AI */
+
+  async aiEnabled(): Promise<boolean> {
+    try {
+      const status = await this.request<{ enabled: boolean }>('/ai/status');
+      return status.enabled;
+    } catch {
+      // An unreachable or older backend simply has no hosted model; the caller
+      // falls back to the local provider rather than showing an error.
+      return false;
+    }
+  }
+
+  chat(messages: ChatMessage[]): Promise<{ text: string; citations: Citation[] }> {
+    return this.request('/ai/chat', { method: 'POST', body: JSON.stringify({ messages }) });
   }
 
   /* ----------------------------------------------------- Portability */

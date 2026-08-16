@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Block, Notebook, Page, PageSummary, SearchHit, Section } from './types/models';
+import type { Block, Notebook, Page, PageSummary, Priority, SearchHit, Section } from './types/models';
 import type { RibbonTab } from './types/ui';
 import { api, offline, type SyncState } from './api';
 import { addDays, startOfWeek, todayKey } from './domain/dates';
-import { annotate, makeBlock } from './domain/parse';
+import { annotate, makeBlock, newId, taskKey, taskOf } from './domain/parse';
 import { TitleBar, TabStrip, Toolbar, type RibbonActions } from './components/Chrome';
 import { NotebookPane, PagePane, SectionPane } from './components/Panes';
 import { NoteCanvas } from './components/NoteCanvas';
 import { SearchPalette } from './components/SearchPalette';
 import { AIPanel } from './components/AIPanel';
 import { InsightsPanel } from './components/InsightsPanel';
+import { DayReviewModal, type ReviewDecision } from './components/DayReviewModal';
 import type { Citation } from './services/aiService';
 import { MOBILE_QUERY, useMediaQuery } from './lib/useMediaQuery';
 
@@ -29,6 +30,22 @@ const DAILY_SECTION_NAME = 'Daily Log';
  */
 function withSeedBlock(p: Page): Page {
   return p.blocks.length ? p : { ...p, blocks: [makeBlock('TEXT', '')] };
+}
+
+/** Which day the review was last shown for. Local to the device on purpose. */
+const REVIEWED_KEY = 'notebook.lastReviewedDay';
+
+/** The stricter of two deadlines; null means "no deadline", so it never wins. */
+function earlier(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return a < b ? a : b;
+}
+
+const PRIORITY_RANK: Record<string, number> = { low: 1, medium: 2, high: 3 };
+
+function strongerPriority(a: Priority, b: Priority): Priority {
+  return (PRIORITY_RANK[b ?? ''] ?? 0) > (PRIORITY_RANK[a ?? ''] ?? 0) ? b : a;
 }
 
 export default function App() {
@@ -56,6 +73,7 @@ export default function App() {
 
   const [carry, setCarry] = useState<Array<{ page: PageSummary; block: Block }>>([]);
   const [carryDismissed, setCarryDismissed] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [flashBlockId, setFlashBlockId] = useState<string | null>(null);
 
   const activeBlockId = useRef<string | null>(null);
@@ -127,12 +145,43 @@ export default function App() {
       setCarry([]);
       return;
     }
-    api.pendingBefore(page.date).then((items) => {
-      // Anything already present on today's page is not a carry-forward candidate.
-      const here = new Set(page.blocks.map((b) => b.text.trim()));
-      setCarry(items.filter(({ block }) => !here.has(block.text.trim())));
-    });
+    // No client-side text dedupe any more: a task already present on today's
+    // page is a *merge* target, not something to hide, and the source is
+    // settled server-side by `forwardedTo` rather than guessed at here.
+    api.pendingBefore(page.date).then(setCarry);
   }, [page?.date, page?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* --------------------------------------------------------- day rollover */
+
+  /**
+   * Open the review on the first sight of a new day.
+   *
+   * Tied to opening the app rather than to a 00:00 timer: a timer only fires
+   * if the tab happens to be open at midnight, and the point of the review is
+   * that you are there to make the decisions. `visibilitychange` covers the
+   * common case of a tab left open overnight.
+   */
+  useEffect(() => {
+    if (!page?.date || page.date !== todayKey()) return;
+
+    const check = () => {
+      const today = todayKey();
+      if (localStorage.getItem(REVIEWED_KEY) === today) return;
+      setReviewOpen(true);
+    };
+
+    check();
+    document.addEventListener('visibilitychange', check);
+    return () => document.removeEventListener('visibilitychange', check);
+  }, [page?.date]);
+
+  // Stamped on close, not on apply: dismissing the review is also a decision,
+  // and re-prompting on every tab focus would make it noise rather than a
+  // ritual. The toolbar button reopens it deliberately.
+  const closeReview = useCallback(() => {
+    localStorage.setItem(REVIEWED_KEY, todayKey());
+    setReviewOpen(false);
+  }, []);
 
   /* -------------------------------------------------------------- saving */
 
@@ -251,18 +300,135 @@ export default function App() {
 
   /* ------------------------------------------------------ carry-forward */
 
-  const acceptCarry = async (items: Array<{ page: PageSummary; block: Block }>) => {
-    if (!page) return;
-    const added = items.map(({ page: src, block }) =>
-      annotate({
-        ...block,
-        id: makeBlock().id,
-        task: { ...(block.task ?? {}), done: false, completedAt: null, carriedFrom: src.date } as Block['task'],
-      }),
-    );
-    changePage({ ...page, blocks: [...page.blocks, ...added] });
-    setCarry((prev) => prev.filter((c) => !items.some((i) => i.block.id === c.block.id)));
-  };
+  /**
+   * Apply the morning review.
+   *
+   * Three writes happen here, in this order, and the order matters: today's
+   * page gets the carried tasks, every source page is settled so the same task
+   * is never offered again, and only then is the day stamped as reviewed. If a
+   * source write fails the whole thing throws, the modal shows it, and the day
+   * stays unreviewed so nothing is silently half-applied.
+   */
+  const applyReview = useCallback(
+    async (decisions: Map<string, ReviewDecision>, intent: string) => {
+      if (!page) return;
+
+      const byId = new Map(carry.map((c) => [c.block.id, c]));
+      let blocks = [...page.blocks];
+
+      /** Where each source block ended up, so the source can point at it. */
+      const landed = new Map<string, string>();
+
+      for (const [blockId, decision] of decisions) {
+        const item = byId.get(blockId);
+        if (!item || decision.action !== 'carry') continue;
+
+        const source = item.block;
+        const src = taskOf(source);
+        const originId = src.originId ?? source.id;
+
+        // Match on the origin id first: it survives rewording the task, which
+        // a text comparison does not. Text is the fallback for a task typed
+        // out again by hand on today's page rather than carried.
+        const key = taskKey(source);
+        const existing = blocks.find((b) => {
+          if (b.type !== 'CHECKBOX') return false;
+          const t = taskOf(b);
+          if (t.done || t.droppedAt) return false;
+          return (t.originId ?? b.id) === originId || taskKey(b) === key;
+        });
+
+        if (existing) {
+          // Merge rather than append. Today's wording wins; the strictest
+          // deadline and the highest priority win, because carrying a task
+          // should never quietly relax it.
+          const t = taskOf(existing);
+          const merged = annotate({
+            ...existing,
+            task: {
+              ...t,
+              originId,
+              carriedFrom: earlier(t.carriedFrom, item.page.date),
+              carryCount: Math.max(t.carryCount, src.carryCount) + 1,
+              due: decision.due ?? earlier(t.due, src.due),
+              priority: strongerPriority(t.priority, src.priority),
+              estimateMin: t.estimateMin ?? src.estimateMin,
+            },
+          });
+          blocks = blocks.map((b) => (b.id === existing.id ? merged : b));
+          landed.set(source.id, existing.id);
+        } else {
+          const created = annotate({
+            ...source,
+            id: newId(),
+            task: {
+              ...src,
+              done: false,
+              completedAt: null,
+              forwardedTo: null,
+              droppedAt: null,
+              originId,
+              carriedFrom: item.page.date,
+              carryCount: src.carryCount + 1,
+              due: decision.due ?? src.due,
+            },
+          });
+          blocks = [...blocks, created];
+          landed.set(source.id, created.id);
+        }
+      }
+
+      // The intent is stored, not written into the note. It is the one record
+      // of what you *meant* to do, and the weekly retro scores the week against
+      // it — parsing that back out of prose would be guesswork.
+      if (intent) {
+        const existing = await api.getReflection(page.date!).catch(() => null);
+        await api.saveReflection({
+          date: page.date!,
+          intent,
+          wentWell: existing?.wentWell ?? '',
+          blockers: existing?.blockers ?? '',
+          focusMinutes: existing?.focusMinutes ?? 0,
+          tasksDone: existing?.tasksDone ?? 0,
+          tasksOpen: existing?.tasksOpen ?? 0,
+        });
+      }
+
+      // Settle the sources, one page at a time. Sequential on purpose: each
+      // save carries an `updatedAt` for the optimistic-concurrency check, and
+      // firing them in parallel against the same page would race.
+      const touched = new Map<string, Array<{ blockId: string; decision: ReviewDecision }>>();
+      for (const [blockId, decision] of decisions) {
+        const item = byId.get(blockId);
+        if (!item || decision.action === 'skip') continue;
+        const list = touched.get(item.page.id) ?? [];
+        list.push({ blockId, decision });
+        touched.set(item.page.id, list);
+      }
+
+      for (const [pageId, entries] of touched) {
+        const src = await api.getPage(pageId);
+        if (!src) continue;
+        const nextBlocks = src.blocks.map((b) => {
+          const entry = entries.find((e) => e.blockId === b.id);
+          if (!entry || b.type !== 'CHECKBOX') return b;
+          const t = taskOf(b);
+          return {
+            ...b,
+            task:
+              entry.decision.action === 'drop'
+                ? { ...t, droppedAt: Date.now() }
+                : { ...t, forwardedTo: landed.get(b.id) ?? null },
+          };
+        });
+        await api.savePage({ ...src, blocks: nextBlocks });
+      }
+
+      changePage({ ...page, blocks });
+      setCarry((prev) => prev.filter((c) => !decisions.has(c.block.id)));
+    },
+    [page, carry, changePage],
+  );
 
   /* ------------------------------------------------------ ribbon actions */
 
@@ -421,7 +587,7 @@ export default function App() {
             carry={carryDismissed ? [] : carry}
             flashBlockId={flashBlockId}
             onChangePage={changePage}
-            onAcceptCarry={acceptCarry}
+            onReviewCarry={() => setReviewOpen(true)}
             onDismissCarry={() => setCarryDismissed(true)}
             onActiveBlock={(id) => {
               activeBlockId.current = id;
@@ -440,6 +606,16 @@ export default function App() {
         )}
         {insightsOpen && <InsightsPanel />}
       </div>
+
+      {reviewOpen && page?.date === todayKey() && (
+        <DayReviewModal
+          today={page.date}
+          sectionId={sectionId}
+          pending={carry}
+          onApply={applyReview}
+          onClose={closeReview}
+        />
+      )}
 
       {searchOpen && (
         <SearchPalette

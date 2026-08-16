@@ -50,6 +50,13 @@ services:
       - key: SUPABASE_URL
         sync: false
 
+      # Google AI Studio → Get API key. Server-side only: a key in the browser
+      # bundle is a key anyone can read and spend. Leaving this unset simply
+      # switches the hosted assistant off — the app falls back to the local
+      # extractive provider rather than breaking.
+      - key: GEMINI_API_KEY
+        sync: false
+
       # Where the browser app is served from. The GitHub Pages origin must be
       # listed or every request from the deployed UI fails CORS preflight.
       - key: CORS_ORIGINS

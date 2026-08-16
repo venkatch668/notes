@@ -18,6 +18,10 @@
 import type { WorkspaceApi } from './types';
 import type {
   Block,
+  ChatMessage,
+  Citation,
+  DayReflection,
+  Goal,
   Notebook,
   Page,
   PageSummary,
@@ -25,6 +29,7 @@ import type {
   SearchHit,
   Section,
   WeeklyStats,
+  WeekSummary,
 } from '../types/models';
 import { ApiError } from './httpApi';
 
@@ -43,7 +48,8 @@ interface CacheShape {
 type QueuedOp =
   | { kind: 'savePage'; pageId: string; page: Page; queuedAt: number }
   | { kind: 'claimDaily'; pageId: string; date: string; queuedAt: number }
-  | { kind: 'createPage'; pageId: string; sectionId: string; title: string; queuedAt: number };
+  | { kind: 'createPage'; pageId: string; sectionId: string; title: string; queuedAt: number }
+  | { kind: 'saveReflection'; reflection: DayReflection; queuedAt: number };
 
 const emptyCache = (): CacheShape => ({
   notebooks: [],
@@ -117,6 +123,13 @@ export class OfflineApi implements WorkspaceApi {
     if (op.kind === 'savePage') {
       this.queue = this.queue.filter((q) => !(q.kind === 'savePage' && q.pageId === op.pageId));
     }
+    // Same reasoning for a reflection: it is an upsert keyed by date, so only
+    // the last edit of a given day is worth replaying.
+    if (op.kind === 'saveReflection') {
+      this.queue = this.queue.filter(
+        (q) => !(q.kind === 'saveReflection' && q.reflection.date === op.reflection.date),
+      );
+    }
     this.queue.push(op);
     this.saveQueue();
   }
@@ -173,6 +186,9 @@ export class OfflineApi implements WorkspaceApi {
       case 'createPage':
         await this.remote.createPage(op.sectionId, op.title);
         return;
+      case 'saveReflection':
+        await this.remote.saveReflection(op.reflection);
+        return;
       case 'savePage': {
         const saved = await this.remote.savePage(op.page);
         this.cache.pages[op.pageId] = { ...op.page, updatedAt: saved.updatedAt };
@@ -183,6 +199,9 @@ export class OfflineApi implements WorkspaceApi {
   }
 
   private async refreshPage(op: QueuedOp): Promise<void> {
+    // Not every queued write is about a page — a reflection has no page to
+    // refresh, so there is nothing to do for it.
+    if (!('pageId' in op)) return;
     const fresh = await this.remote.getPage(op.pageId);
     if (fresh) {
       this.cache.pages[fresh.id] = fresh;
@@ -322,6 +341,53 @@ export class OfflineApi implements WorkspaceApi {
 
   weeklyStats(weekStart: string): Promise<WeeklyStats> {
     return this.remote.weeklyStats(weekStart);
+  }
+
+  /* --------------------------------------------------- Retrospection */
+
+  getReflection(date: string): Promise<DayReflection | null> {
+    return this.remote.getReflection(date).catch((err) => {
+      if (this.isNetworkFailure(err)) return null;
+      throw err;
+    });
+  }
+
+  saveReflection(reflection: DayReflection): Promise<DayReflection> {
+    // Queued like a page save: closing the day on a train must not lose what
+    // you wrote. Replay is safe because the write is an upsert keyed by date.
+    return this.remote.saveReflection(reflection).catch((err) => {
+      if (!this.isNetworkFailure(err)) throw err;
+      this.enqueue({ kind: 'saveReflection', reflection, queuedAt: Date.now() });
+      this.emit('offline');
+      return reflection;
+    });
+  }
+
+  getWeekSummary(weekStart: string): Promise<WeekSummary | null> {
+    return this.remote.getWeekSummary(weekStart).catch((err) => {
+      if (this.isNetworkFailure(err)) return null;
+      throw err;
+    });
+  }
+
+  // Not queued: generating costs a model call and only makes sense against a
+  // live server. Failing here is correct — the user asked for it just now.
+  generateWeekSummary(weekStart: string): Promise<WeekSummary> {
+    return this.remote.generateWeekSummary(weekStart);
+  }
+
+  saveGoals(weekStart: string, goals: Goal[]): Promise<WeekSummary> {
+    return this.remote.saveGoals(weekStart, goals);
+  }
+
+  /* ------------------------------------------------------------- AI */
+
+  aiEnabled(): Promise<boolean> {
+    return this.remote.aiEnabled();
+  }
+
+  chat(messages: ChatMessage[]): Promise<{ text: string; citations: Citation[] }> {
+    return this.remote.chat(messages);
   }
 
   /* ------------------------------------------------------------- writes */

@@ -1,12 +1,17 @@
 import type {
   Block,
+  ChatMessage,
+  DayReflection,
+  Goal,
   Notebook,
   Page,
   PageSummary,
   SearchFilters,
   SearchHit,
   Section,
+  Citation,
   WeeklyStats,
+  WeekSummary,
 } from '../types/models';
 
 /**
@@ -42,6 +47,24 @@ export interface WorkspaceApi {
   /** Unchecked tasks from days before `date`, for the carry-forward strip. */
   pendingBefore(date: string, limit?: number): Promise<Array<{ page: PageSummary; block: Block }>>;
   weeklyStats(weekStart: string): Promise<WeeklyStats>;
+
+  /* ------------------------------------------------------- Retrospection */
+
+  /** Null when the day has not been closed — a normal state, not an error. */
+  getReflection(date: string): Promise<DayReflection | null>;
+  saveReflection(reflection: DayReflection): Promise<DayReflection>;
+
+  getWeekSummary(weekStart: string): Promise<WeekSummary | null>;
+  /** Costs a model call, so it is only ever triggered deliberately. */
+  generateWeekSummary(weekStart: string): Promise<WeekSummary>;
+  /** Goals for the week following `weekStart`. */
+  saveGoals(weekStart: string, goals: Goal[]): Promise<WeekSummary>;
+
+  /* ------------------------------------------------------------------ AI */
+
+  /** Whether a hosted model is configured, so the client can pick a provider. */
+  aiEnabled(): Promise<boolean>;
+  chat(messages: ChatMessage[]): Promise<{ text: string; citations: Citation[] }>;
 
   exportAll(): Promise<string>;
   importAll(json: string): Promise<void>;

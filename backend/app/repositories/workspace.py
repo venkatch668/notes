@@ -252,9 +252,17 @@ JOIN pages p ON p.id = b.page_id
 WHERE b.user_id = :user_id
   AND b.task IS NOT NULL
   AND COALESCE(b.task ->> 'done', 'false') <> 'true'
+  -- A task leaves this list three ways: checked off, forwarded to a later day,
+  -- or explicitly dropped. `->>` yields SQL NULL both when the key is absent
+  -- (tasks written before day review existed) and when it holds a JSON null,
+  -- so one IS NULL test covers legacy and current rows alike.
+  AND b.task ->> 'forwardedTo' IS NULL
+  AND b.task ->> 'droppedAt' IS NULL
   AND p.date IS NOT NULL
   AND p.date < :before
-ORDER BY p.date DESC, b.position ASC
+-- Overdue work first; NULLS LAST keeps undated tasks behind dated ones instead
+-- of sorting in front of them.
+ORDER BY (b.task ->> 'due') ASC NULLS LAST, p.date DESC, b.position ASC
 LIMIT :limit
 """
 

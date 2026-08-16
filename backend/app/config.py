@@ -49,6 +49,27 @@ class Settings(BaseSettings):
     auth_disabled: bool = False
     dev_user_id: str = "00000000-0000-0000-0000-000000000001"
 
+    # --- AI (Gemini) -------------------------------------------------------
+    # Google AI Studio → Get API key. Server-side only, deliberately: a key in
+    # the browser bundle is a key anyone who opens devtools can spend.
+    # Absent means the hosted assistant is simply switched off — the client
+    # falls back to the local extractive provider rather than erroring.
+    gemini_api_key: str | None = None
+    # A pinned, current model rather than a `-latest` alias. Aliases move under
+    # you — behaviour and cost change with no diff — and the one time it was
+    # tried it answered 503 "high demand" while the pinned names were fine.
+    # Verify with GET /v1beta/models before changing this; the list endpoint
+    # still advertises `gemini-2.5-flash`, which generateContent now rejects
+    # with 404 for keys that were not already using it.
+    gemini_model: str = "gemini-3.5-flash"
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    # One wall-clock ceiling for a whole chat turn, tool round-trips included.
+    gemini_timeout_s: float = 45.0
+
+    @property
+    def ai_enabled(self) -> bool:
+        return bool(self.gemini_api_key)
+
     # --- HTTP --------------------------------------------------------------
     # Held as a raw string, not list[str], on purpose: pydantic-settings tries
     # to JSON-decode complex types straight from the environment, before any

@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Block, Page, PageSummary } from '../types/models';
-import { emptyTask, makeBlock } from '../domain/parse';
-import { formatLong, formatTime, formatShort } from '../domain/dates';
+import { displayText, emptyTask, makeBlock, taskOf } from '../domain/parse';
+import { formatDuration, formatLong, formatTime, formatShort } from '../domain/dates';
+import { useFocusTimer } from '../lib/useFocusTimer';
 import { BlockRow } from './BlockRow';
 import { TaskChips } from './Chips';
+import { DayCloseCard } from './DayCloseCard';
 
 interface Props {
   page: Page;
   carry: Array<{ page: PageSummary; block: Block }>;
   flashBlockId: string | null;
   onChangePage: (page: Page) => void;
-  onAcceptCarry: (items: Array<{ page: PageSummary; block: Block }>) => void;
+  /** Opens the day review, which is where carrying is actually decided. */
+  onReviewCarry: () => void;
   onDismissCarry: () => void;
   /** Reported so the ribbon can act on whichever block has the caret. */
   onActiveBlock: (id: string | null) => void;
@@ -23,7 +26,7 @@ export function NoteCanvas({
   carry,
   flashBlockId,
   onChangePage,
-  onAcceptCarry,
+  onReviewCarry,
   onDismissCarry,
   onActiveBlock,
 }: Props) {
@@ -47,6 +50,51 @@ export function NoteCanvas({
   const stats = useMemo(() => {
     const tasks = blocks.filter((b) => b.type === 'CHECKBOX');
     return { total: tasks.length, done: tasks.filter((b) => b.task?.done).length };
+  }, [blocks]);
+
+  /* ----------------------------------------------------------- focus time */
+
+  const logTime = useCallback(
+    (blockId: string, minutes: number) => {
+      onChangePage({
+        ...page,
+        blocks: page.blocks.map((b) => {
+          if (b.id !== blockId || b.type !== 'CHECKBOX') return b;
+          const t = taskOf(b);
+          return { ...b, task: { ...t, actualMin: (t.actualMin ?? 0) + minutes } };
+        }),
+      });
+    },
+    [page, onChangePage],
+  );
+
+  const timer = useFocusTimer({ page, onLog: logTime });
+
+  /**
+   * Where the day actually went.
+   *
+   * Derived from the blocks on screen rather than stored: `actualMin` is the
+   * single source of truth, and a cached total would drift the moment a task
+   * was edited. Untagged focused work is grouped under a single bucket so the
+   * split always adds up to the total.
+   */
+  const focus = useMemo(() => {
+    let total = 0;
+    const byTag = new Map<string, number>();
+    for (const b of blocks) {
+      const min = b.type === 'CHECKBOX' ? taskOf(b).actualMin ?? 0 : 0;
+      if (!min) continue;
+      total += min;
+      if (!b.tags.length) byTag.set('untagged', (byTag.get('untagged') ?? 0) + min);
+      // Time is credited to every tag on the task, so the per-tag figures
+      // answer "how much work touched #oncall", not "how much was only
+      // #oncall". They intentionally sum to more than the total.
+      for (const tag of b.tags) byTag.set(tag, (byTag.get(tag) ?? 0) + min);
+    }
+    return {
+      total,
+      tags: [...byTag.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5),
+    };
   }, [blocks]);
 
   /* ------------------------------------------------------ block operations */
@@ -102,9 +150,14 @@ export function NoteCanvas({
   const handleToggle = (index: number) => {
     const cur = blocks[index];
     if (cur.type !== 'CHECKBOX') return;
-    const task = { ...(cur.task ?? emptyTask()) };
+    // Finishing the task ends the run, and those last minutes are folded into
+    // this same update rather than written separately — two page updates in
+    // one commit would race and one of them would be lost.
+    const logged = timer.takeElapsed(cur.id);
+    const task = { ...emptyTask(), ...cur.task };
     task.done = !task.done;
     task.completedAt = task.done ? Date.now() : null;
+    if (logged > 0) task.actualMin = (task.actualMin ?? 0) + logged;
     const next = [...blocks];
     next[index] = { ...cur, task };
     update(next);
@@ -156,6 +209,19 @@ export function NoteCanvas({
               {stats.done} of {stats.total} tasks done
             </span>
           )}
+          {focus.total > 0 && (
+            <span
+              className="pagemeta__stat pagemeta__focus"
+              title={focus.tags.map(([t, m]) => `#${t} ${formatDuration(m)}`).join(' · ')}
+            >
+              {formatDuration(focus.total)} focused
+              {focus.tags.length > 0 && (
+                <span className="pagemeta__split">
+                  {focus.tags.map(([t, m]) => `#${t} ${formatDuration(m)}`).join(' · ')}
+                </span>
+              )}
+            </span>
+          )}
           {blocks.length === 0 && (
             <button type="button" className="linkbtn" onClick={insertScaffold}>
               Insert day template
@@ -163,34 +229,32 @@ export function NoteCanvas({
           )}
         </div>
 
+        {/* A pointer to the review, not a second way to carry tasks. Two
+            competing carry paths is how the same task ends up on the page
+            twice, so the decision lives in one place only. */}
         {carry.length > 0 && (
           <div className="carry">
             <div className="carry__head">
               <span>↷ {carry.length} unfinished from earlier</span>
               <span className="carry__actions">
-                <button type="button" className="btn btn-sm btn-primary" onClick={() => onAcceptCarry(carry)}>
-                  Add all to today
+                <button type="button" className="btn btn-sm btn-primary" onClick={onReviewCarry}>
+                  Review
                 </button>
                 <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onDismissCarry}>
-                  Not today
+                  Not now
                 </button>
               </span>
             </div>
-            {carry.map(({ page: src, block }) => (
+            {carry.slice(0, 4).map(({ page: src, block }) => (
               <div className="carry__item" key={block.id}>
-                <button
-                  type="button"
-                  className="linkbtn"
-                  title="Add this one"
-                  onClick={() => onAcceptCarry([{ page: src, block }])}
-                >
-                  +
-                </button>
-                <span>{block.text.replace(/[!~=@]\S+/g, '').trim()}</span>
+                <span>{displayText(block)}</span>
                 <TaskChips block={block} />
                 <span className="carry__from">{src.date ? formatShort(src.date) : ''}</span>
               </div>
             ))}
+            {carry.length > 4 && (
+              <div className="carry__item carry__more">and {carry.length - 4} more</div>
+            )}
           </div>
         )}
 
@@ -215,9 +279,14 @@ export function NoteCanvas({
               }}
               onPasteBlocks={handlePasteBlocks}
               onNavigate={handleNavigate}
+              timerSec={timer.runningBlockId === block.id ? timer.elapsedSec : null}
+              onToggleTimer={(id) => void timer.start(id)}
             />
           ))}
         </div>
+
+        {/* Only on a daily note: a free page has no day to close. */}
+        {page.kind === 'daily' && <DayCloseCard page={page} />}
 
         {/* Clicking the empty area below the last block starts a new one, so
             there is never a dead zone between "open" and "write". */}

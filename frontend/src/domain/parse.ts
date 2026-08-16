@@ -50,7 +50,36 @@ export function emptyTask(): Task {
     completedAt: null,
     reminderAt: null,
     carriedFrom: null,
+    forwardedTo: null,
+    carryCount: 0,
+    droppedAt: null,
+    originId: null,
   };
+}
+
+/**
+ * A block's task with every field present.
+ *
+ * Blocks arriving from storage predate the fields added later, so reading
+ * `block.task.carryCount` directly yields undefined on anything written before
+ * day review existed. Read through this instead.
+ */
+export function taskOf(block: Block): Task {
+  return { ...emptyTask(), ...block.task };
+}
+
+/**
+ * Comparison key for "is this the same task?".
+ *
+ * Attribute tokens are stripped first, so re-prioritising a task does not make
+ * it look like a different one.
+ */
+export function taskKey(block: Block): string {
+  return displayText(block)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export function makeBlock(type: BlockType = 'TEXT', text = '', extra: Partial<Block> = {}): Block {
@@ -156,7 +185,10 @@ export function annotate(block: Block): Block {
   const next: Block = { ...block, tags, classification: classificationOf(tags) };
 
   if (next.type === 'CHECKBOX') {
-    const task: Task = { ...(next.task ?? emptyTask()) };
+    // Defaults first, stored value second: tasks written before a field
+    // existed come back from storage without it, and every `task.carryCount`
+    // read downstream would be undefined rather than 0.
+    const task: Task = { ...emptyTask(), ...next.task };
 
     const pm = [...next.text.matchAll(PRIORITY_RE)].pop();
     task.priority = pm ? PRIORITY_MAP[pm[2].toLowerCase()] ?? null : null;

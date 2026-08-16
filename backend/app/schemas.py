@@ -49,6 +49,13 @@ class Task(Schema):
     completed_at: int | None = None  # epoch ms, matching the frontend
     reminder_at: str | None = None
     carried_from: Date | None = None
+    # Day-review bookkeeping. These MUST be declared here: Pydantic drops
+    # undeclared fields, so a task saved without them would come back from the
+    # server stripped of its carry state and be offered again every morning.
+    forwarded_to: uuid.UUID | None = None
+    carry_count: int = 0
+    dropped_at: int | None = None  # epoch ms
+    origin_id: uuid.UUID | None = None
 
 
 # -------------------------------------------------------------------- Block
@@ -189,6 +196,91 @@ class DayCount(Schema):
 class TagCount(Schema):
     tag: str
     count: int
+
+
+class DayReflectionOut(Schema):
+    date: Date
+    intent: str = ""
+    went_well: str = ""
+    blockers: str = ""
+    focus_minutes: int = 0
+    tasks_done: int = 0
+    tasks_open: int = 0
+
+
+class DayReflectionSave(Schema):
+    """Upsert body. The date comes from the path, never the payload."""
+
+    intent: str = ""
+    went_well: str = ""
+    blockers: str = ""
+    focus_minutes: int = Field(default=0, ge=0)
+    tasks_done: int = Field(default=0, ge=0)
+    tasks_open: int = Field(default=0, ge=0)
+
+
+# ------------------------------------------------------------------- Retro
+
+
+class Goal(Schema):
+    text: str = Field(min_length=1, max_length=200)
+    tag: str | None = None
+    target_min: int = Field(default=0, ge=0)
+
+
+class GoalScore(Schema):
+    text: str
+    tag: str | None = None
+    target_min: int = 0
+    actual_min: int = 0
+
+
+class WeekSummaryOut(Schema):
+    week_start: Date
+    narrative: str = ""
+    highlights: list[str] = Field(default_factory=list)
+    dropped: list[str] = Field(default_factory=list)
+    focus_by_tag: dict[str, int] = Field(default_factory=dict)
+    goals: list[Goal] = Field(default_factory=list)
+    goal_scores: list[GoalScore] = Field(default_factory=list)
+    generated_at: datetime | None = None
+
+
+class GoalsSave(Schema):
+    goals: list[Goal] = Field(default_factory=list, max_length=5)
+
+
+# ------------------------------------------------------------------ AI chat
+
+
+class ChatMessage(Schema):
+    role: Literal["user", "assistant"]
+    text: str
+
+
+class ChatRequest(Schema):
+    # Capped so one runaway thread cannot push an unbounded transcript at the
+    # model; the tool layer, not the history, is where depth comes from.
+    messages: list[ChatMessage] = Field(min_length=1, max_length=40)
+
+
+class CitationOut(Schema):
+    date: Date | None = None
+    page_id: uuid.UUID
+    block_id: uuid.UUID
+    label: str
+
+
+class ChatResponse(Schema):
+    text: str
+    citations: list[CitationOut] = Field(default_factory=list)
+
+
+class AiStatusOut(Schema):
+    """Whether a hosted model is usable, so the client can pick a provider."""
+
+    enabled: bool
+    model: str | None = None
 
 
 class WeeklyStatsOut(Schema):

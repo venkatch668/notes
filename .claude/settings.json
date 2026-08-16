@@ -2,7 +2,40 @@
   "permissions": {
     "allow": [
       "Bash(node -e ' *)",
-      "Read(//c/venkat/backend/app/**)"
+      "Read(//c/venkat/backend/app/**)",
+      "Bash(where python *)",
+      "Bash(PORT=8001 .venv/Scripts/uvicorn.exe app.main:app --host 127.0.0.1 --port 8001)",
+      "Bash(tee /tmp/backend.log)",
+      "Bash(curl -s http://127.0.0.1:8001/api/v1/notebooks -H \"Authorization: Bearer x\")",
+      "Bash(curl -s http://127.0.0.1:8001/docs -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(.venv/Scripts/uvicorn.exe app.main:app --host 127.0.0.1 --port 8001)",
+      "Read(//c/Users/venka/AppData/Local/Temp/claude/**)",
+      "Bash(npx --version)",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\\\\n\" http://127.0.0.1:5173/api/v1/notebooks)",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\\\\n\" http://127.0.0.1:8001/api/v1/notebooks)",
+      "Bash(curl -s http://127.0.0.1:8001/api/v1/notebooks/3d3d168e-cf15-44dd-8661-1aad8b60df6e/sections)",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\\\\n\" http://127.0.0.1:8001/api/v1/daily/2026-08-16)",
+      "Bash(powershell -Command \"Stop-Process -Id 15344 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 16564 -Force -ErrorAction SilentlyContinue; Stop-Process -Id 13900 -Force -ErrorAction SilentlyContinue\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://work-notebook-api.onrender.com/api/v1/notebooks)",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_retro.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_routes.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_routes.py\" 2>&1 | Select-String -NotMatch \"Deprecation|from starlette\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; \\(Get-Content \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_routes.py\"\\) -replace '/api/ai/status','/api/v1/ai/status' | Set-Content -Encoding utf8 \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_routes.py\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_routes.py\" 2>&1 | Select-String \"status:|openapi\")",
+      "Bash(grep -E \"^\\\\.env$\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_db.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_upsert.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_stale.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_pending.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_blocks.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_pending2.py\")",
+      "Bash(python -)",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_gemini.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\list_models.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\probe_models.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_retro_e2e.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_json.py\")",
+      "PowerShell(cd c:\\\\venkat\\\\notes\\\\backend; .\\\\.venv\\\\Scripts\\\\python.exe -m pytest -q 2>&1 | Select-Object -Last 3; $env:PYTHONPATH=\"c:\\\\venkat\\\\notes\\\\backend\"; .\\\\.venv\\\\Scripts\\\\python.exe \"C:\\\\Users\\\\venka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--venkat-notes\\\\fb2075fa-093c-4505-9736-af39a1fbacc2\\\\scratchpad\\\\check_routes.py\" 2>&1 | Select-String \"status:\"; cd c:\\\\venkat\\\\notes\\\\frontend; npm run build 2>&1 | Select-Object -Last 4)"
     ]
   }
 }

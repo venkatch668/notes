@@ -133,6 +133,68 @@ class Page(Base, TimestampMixin):
     )
 
 
+class DayReflection(Base, TimestampMixin):
+    """One row per day: what you meant to do, and what actually happened.
+
+    Kept out of the note body deliberately. Blocks are free-form text the user
+    owns; this is structured data the retro reads, and mixing the two would
+    mean parsing prose to answer "did the week match the intent".
+
+    The counters are snapshots taken at close time, not live aggregates —
+    editing a note weeks later must not rewrite what that day felt like.
+    """
+
+    __tablename__ = "day_reflections"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False, index=True)
+    date: Mapped[Date] = mapped_column(SQLDate, nullable=False)
+
+    intent: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    went_well: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    blockers: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+    focus_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    tasks_done: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    tasks_open: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "date", name="uq_day_reflections_user_date"),
+    )
+
+
+class WeekSummary(Base, TimestampMixin):
+    """The written retro for one week, plus the focus goals set for the next.
+
+    Generated text is persisted rather than recomputed on every view: it costs
+    a model call, it must not change under you between two readings of the same
+    week, and week-over-week comparison needs something durable to compare.
+    """
+
+    __tablename__ = "week_summaries"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False, index=True)
+    week_start: Mapped[Date] = mapped_column(SQLDate, nullable=False)
+
+    narrative: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    highlights: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    dropped: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    focus_by_tag: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+
+    # Goals for the *following* week: [{ text, tag, targetMin }]. Scored against
+    # that week's actual focus minutes, deterministically — the model writes the
+    # prose, never the numbers.
+    goals: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    goal_scores: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+
+    generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "week_start", name="uq_week_summaries_user_week"),
+    )
+
+
 class Block(Base, TimestampMixin):
     __tablename__ = "blocks"
 

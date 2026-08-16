@@ -118,7 +118,13 @@ async def save_page(
     # by_alias=True stores camelCase keys ("estimateMin", "carriedFrom"), which
     # is what the analytics and search SQL reads and what the frontend expects
     # back. Dumping snake_case here would silently break both.
-    blocks = [block.model_dump(by_alias=True) for block in payload.blocks]
+    #
+    # mode="json" matters just as much: the task carries dates and UUIDs
+    # (`due`, `forwardedTo`, `originId`), and json.dumps cannot serialise either
+    # of those Python objects on the way into the JSONB column. It also keeps
+    # `due` as a 'YYYY-MM-DD' string, which is what the `task ->> 'due'`
+    # ordering in the pending-tasks query compares against.
+    blocks = [block.model_dump(mode="json", by_alias=True) for block in payload.blocks]
     await repo.replace_blocks(session, user_id, page, blocks)
     await repo.touch_page(session, page)
 

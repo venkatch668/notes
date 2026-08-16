@@ -57,6 +57,12 @@ API refuses to honour that flag when `ENVIRONMENT=production`.
    `SUPABASE_JWT_SECRET`.
 4. `alembic upgrade head` creates the schema.
 
+If you would rather not point Alembic at the database, run the SQL scripts in
+`sql/` in order through **Supabase → SQL Editor**: `001_initial_schema.sql`
+then `002_reflections.sql`. Each one records the revision it applied, so a
+later `alembic upgrade head` picks up from there instead of trying to recreate
+the tables. Both scripts are a single transaction and safe to re-run.
+
 ### Why the pooler matters
 
 Supabase's pooler runs PgBouncer in transaction mode. `db.py` detects port 6543
@@ -74,6 +80,20 @@ Then set the three secret values in the dashboard:
 | `DATABASE_URL` | Supabase → Settings → Database → URI (**pooler, port 6543**) |
 | `SUPABASE_URL` | Supabase → Settings → API → Project URL |
 | `SUPABASE_JWT_SECRET` | Supabase → Settings → API → JWT Secret (HS256 projects only) |
+| `GEMINI_API_KEY` | Google AI Studio → Get API key (optional — see below) |
+
+### The assistant key
+
+`GEMINI_API_KEY` is optional and server-side only. Without it, `/ai/status`
+reports `enabled: false` and the app falls back to its local extractive
+provider, so nothing breaks — you just get keyword answers instead of
+conversational ones, and the weekly retro is assembled from the numbers rather
+than written. `GEMINI_MODEL` defaults to `gemini-2.5-flash`.
+
+The key is never sent to the browser. Everything the frontend can reach is
+`/ai/chat` and `/ai/status`, and the tools the model can call are read-only —
+it can search notes and read aggregates, but it cannot write a block or close a
+task.
 
 `start.sh` runs `alembic upgrade head` before starting uvicorn, so a deploy can
 never serve traffic against an older schema.

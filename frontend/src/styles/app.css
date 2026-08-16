@@ -679,6 +679,434 @@ body {
   font-size: 11px;
 }
 
+/* ------------------------------------------------------- Focus timer */
+
+.focusbtn {
+  flex: none;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--grey-90);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+/* Revealed on hover so a page of tasks is not a wall of buttons, but always
+   visible while running — a hidden running timer is how you lose an hour. */
+.block:hover .focusbtn,
+.focusbtn:focus-visible,
+.focusbtn--on {
+  opacity: 1;
+}
+
+.focusbtn:hover {
+  background: var(--grey-20);
+  color: var(--grey-160);
+}
+
+.focusbtn--on {
+  border-color: var(--onenote-purple);
+  color: var(--onenote-purple);
+  font-weight: 600;
+}
+
+.pagemeta__focus {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pagemeta__split {
+  color: var(--grey-90);
+  font-size: 11px;
+}
+
+.carry__more {
+  color: var(--grey-90);
+  font-style: italic;
+}
+
+/* ----------------------------------------------------------- Day close */
+
+.dayclose__open {
+  margin: 18px 0 6px;
+  padding: 8px 12px;
+  width: 100%;
+  border: 1px dashed var(--grey-40);
+  border-radius: var(--radius-md);
+  color: var(--grey-110);
+  font-size: 12px;
+  text-align: left;
+}
+
+.dayclose__open:hover {
+  border-color: var(--onenote-purple);
+  color: var(--onenote-purple);
+}
+
+.dayclose {
+  margin: 18px 0 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--grey-40);
+  border-left: 3px solid var(--onenote-purple);
+  border-radius: var(--radius-md);
+  background: var(--grey-10);
+}
+
+.dayclose__head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--grey-110);
+}
+
+.dayclose__head .linkbtn {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.dayclose__recap {
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+  color: var(--grey-110);
+}
+
+.dayclose__recap strong {
+  font-size: 16px;
+  color: var(--grey-190);
+}
+
+.dayclose__intent {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--grey-130);
+}
+
+.dayclose__field {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--grey-110);
+}
+
+.dayclose__field span {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.dayclose__error {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: #fdeded;
+  color: #a4262c;
+  font-size: 12px;
+}
+
+.dayclose__foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.dayclose__saved {
+  font-size: 11px;
+  color: var(--grey-90);
+}
+
+.dayclose__foot .btn {
+  margin-left: auto;
+}
+
+/* --------------------------------------------------------- Weekly retro */
+
+.retro {
+  padding: 4px 2px 14px;
+  border-bottom: 1px solid var(--grey-20);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--grey-160);
+}
+
+.retro p {
+  margin: 0 0 10px;
+}
+
+.retro__h4 {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--grey-110);
+}
+
+.retro__list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+.retro__list--muted {
+  color: var(--grey-90);
+}
+
+.goals {
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--grey-20);
+}
+
+.goal {
+  margin-bottom: 10px;
+}
+
+.goal__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.goal__text {
+  color: var(--grey-160);
+}
+
+.goal__num {
+  margin-left: auto;
+  color: var(--grey-90);
+  font-variant-numeric: tabular-nums;
+}
+
+.goal__num.is-hit {
+  color: #107c10;
+  font-weight: 600;
+}
+
+.goal__bar {
+  height: 5px;
+  margin-top: 4px;
+  border-radius: 3px;
+  background: var(--grey-20);
+  overflow: hidden;
+}
+
+.goal__fill {
+  height: 100%;
+  background: var(--onenote-purple);
+}
+
+.goal__fill.is-hit {
+  background: #107c10;
+}
+
+.goaledit {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.goaledit__tag {
+  width: 92px;
+  flex: none;
+}
+
+.goaledit__target {
+  width: 72px;
+  flex: none;
+}
+
+.goals__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.goals__actions .btn {
+  margin-left: auto;
+}
+
+/* ---------------------------------------------------------- Day review */
+
+.dayreview {
+  width: min(680px, 94vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-radius: 8px;
+  box-shadow: var(--shadow-flyout);
+  overflow: hidden;
+}
+
+.dayreview__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--grey-30);
+}
+
+.dayreview__title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--grey-190);
+}
+
+.dayreview__sub {
+  font-size: 12px;
+  color: var(--grey-110);
+}
+
+.dayreview__head .linkbtn {
+  margin-left: auto;
+}
+
+.dayreview__body {
+  overflow-y: auto;
+  padding: 4px 20px 12px;
+}
+
+.dayreview__section {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--grey-20);
+}
+
+.dayreview__section:last-child {
+  border-bottom: 0;
+}
+
+.dayreview__h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--grey-110);
+}
+
+.dayreview__h3 .linkbtn {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.dayreview__recap {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--grey-130);
+}
+
+.dayreview__recap strong {
+  font-size: 17px;
+  color: var(--grey-190);
+}
+
+.dayreview__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.dayreview__task {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border: 1px solid var(--grey-30);
+  border-radius: var(--radius-md);
+}
+
+/* The decision has to be readable at a glance on the way back up the list. */
+.dayreview__task.is-carry {
+  border-color: var(--onenote-purple);
+  background: var(--grey-10);
+}
+
+.dayreview__task.is-drop {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.dayreview__taskmain {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.dayreview__tasktext {
+  color: var(--grey-190);
+}
+
+.dayreview__taskmeta {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--grey-90);
+}
+
+.dayreview__age.is-stale {
+  color: #8a6100;
+  font-weight: 600;
+}
+
+.dayreview__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.dayreview__date {
+  width: 148px;
+}
+
+.dayreview__error {
+  padding: 10px 20px;
+  background: #fdeded;
+  color: #a4262c;
+  font-size: 12px;
+}
+
+.dayreview__foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--grey-30);
+  background: var(--grey-10);
+}
+
+.dayreview__count {
+  font-size: 12px;
+  color: var(--grey-110);
+}
+
+.dayreview__foot .btn {
+  margin-left: auto;
+}
+
 .linkbtn {
   padding: 3px 8px;
   border-radius: var(--radius-sm);
@@ -958,6 +1386,13 @@ mark {
   background: var(--grey-20);
   color: var(--grey-130);
   font-weight: 400;
+}
+
+/* A task carried five or more times has stopped being a plan. */
+.chip--stale {
+  background: #fdf3d8;
+  color: #8a6100;
+  font-weight: 600;
 }
 
 /* ------------------------------------------------------------- Flyouts */

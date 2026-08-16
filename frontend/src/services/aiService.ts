@@ -11,16 +11,20 @@
  */
 
 import type { WorkspaceApi } from '../api/types';
-import type { Block, PageSummary, SearchHit, WeeklyStats } from '../types/models';
+import type {
+  Block,
+  ChatMessage,
+  Citation,
+  PageSummary,
+  SearchHit,
+  WeeklyStats,
+} from '../types/models';
 import { addDays, formatShort, startOfWeek, todayKey } from '../domain/dates';
 import { displayText } from '../domain/parse';
 
-export interface Citation {
-  date: string | null;
-  pageId: string;
-  blockId: string;
-  label: string;
-}
+// Re-exported so the many existing importers keep working; the type itself
+// now lives in the domain, where the API layer can also name it.
+export type { Citation };
 
 export interface AiAnswer {
   text: string;
@@ -169,9 +173,11 @@ export const localProvider: AIProvider = {
 
 export class AiService {
   private tools: ReturnType<typeof makeTools>;
+  /** Resolved once and cached: the answer cannot change mid-session. */
+  private hosted: Promise<boolean> | null = null;
 
   constructor(
-    api: WorkspaceApi,
+    private api: WorkspaceApi,
     private provider: AIProvider = localProvider,
   ) {
     this.tools = makeTools(api);
@@ -181,8 +187,40 @@ export class AiService {
     return this.provider.name;
   }
 
-  /** retrieve → build context → generate (design.md §6.1). */
+  private useHosted(): Promise<boolean> {
+    if (!this.hosted) this.hosted = this.api.aiEnabled().catch(() => false);
+    return this.hosted;
+  }
+
+  /**
+   * Answer within a conversation.
+   *
+   * The whole thread goes to the server, not just the last message, so
+   * "what about last week?" resolves against what was already asked. The
+   * hosted model calls the read-only tools itself across several hops; the
+   * local provider gets one pre-retrieved context because it cannot iterate.
+   */
+  async chat(messages: ChatMessage[]): Promise<AiAnswer> {
+    if (await this.useHosted()) {
+      try {
+        return await this.api.chat(messages);
+      } catch (err) {
+        // A configured model that failed this once is worth falling back for,
+        // rather than leaving the panel with nothing to show.
+        console.warn('Hosted assistant failed; answering locally instead.', err);
+      }
+    }
+
+    const question = messages[messages.length - 1]?.text ?? '';
+    return this.askLocal(question);
+  }
+
+  /** Single-question path: retrieve → build context → generate. */
   async ask(question: string): Promise<AiAnswer> {
+    return this.chat([{ role: 'user', text: question }]);
+  }
+
+  private async askLocal(question: string): Promise<AiAnswer> {
     const words = keywordsOf(question);
     const query = words.join(' ');
 
