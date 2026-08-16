@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   title: string;
@@ -93,35 +94,40 @@ export function Modal({
     };
   }, [onClose, dismissible]);
 
-  return (
-    <div className="scrim scrim--modal" onMouseDown={dismissible ? onClose : undefined}>
+  // Portalled to <body> so the dialog is never laid out inside the app shell.
+  // `.app` is a grid and `.workspace` a positioned grid; anything rendered in
+  // there is subject to their tracks and stacking, which is how a centred
+  // overlay ends up pinned to a column edge.
+  return createPortal(
+    <div className="scrim scrim--dialog" onMouseDown={dismissible ? onClose : undefined}>
       <div
         ref={panelRef}
-        className={`modal modal--${size}`}
+        className={`dlg dlg--${size}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <header className="modal__head">
+        <header className="dlg__head">
           <div>
-            <h2 className="modal__title" id={titleId}>
+            <h2 className="dlg__title" id={titleId}>
               {title}
             </h2>
-            {subtitle && <p className="modal__subtitle">{subtitle}</p>}
+            {subtitle && <p className="dlg__subtitle">{subtitle}</p>}
           </div>
           {dismissible && (
-            <button type="button" className="modal__close" onClick={onClose} aria-label="Close">
+            <button type="button" className="dlg__close" onClick={onClose} aria-label="Close">
               ×
             </button>
           )}
         </header>
 
-        {children && <div className="modal__body">{children}</div>}
-        {footer && <footer className="modal__foot">{footer}</footer>}
+        {children && <div className="dlg__body">{children}</div>}
+        {footer && <footer className="dlg__foot">{footer}</footer>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -287,7 +293,7 @@ export function ConfirmModal({ title, message, choices, onChoose }: ConfirmProps
         </button>
       ))}
     >
-      <p className="modal__message">{message}</p>
+      <p className="dlg__message">{message}</p>
     </Modal>
   );
 }

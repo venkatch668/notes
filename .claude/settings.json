@@ -55,7 +55,9 @@
       "Bash(git gc *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(sed -i -e s/modal-in/dlg-in/g -e s/modal__/dlg__/g -e s/modal--/dlg--/g -e s/scrim--dlg/scrim--dialog/g -e 's/\\\\.modal\\\\b/.dlg/g' styles/app.css)",
+      "Bash(sed -i -e 's/`modal modal--\\\\${size}`/`dlg dlg--${size}`/' -e s/modal__/dlg__/g -e 's/scrim scrim--modal/scrim scrim--dialog/' components/Modal.tsx)"
     ]
   }
 }

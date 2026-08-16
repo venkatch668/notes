@@ -995,7 +995,7 @@ body {
 
 /* ---------------------------------------------------------- Day review */
 
-/* Chrome, head and footer now come from `.modal`; what remains here is only
+/* Chrome, head and footer now come from `.dlg`; what remains here is only
    what is specific to reviewing a day. */
 
 .dayreview__body {
@@ -1463,7 +1463,7 @@ mark {
  * and it stops the panel stretching to full height, which is what
  * `align-items`'s default of `stretch` does the moment `center` fails to land.
  */
-.scrim--modal {
+.scrim--dialog {
   position: fixed;
   inset: 0;
   display: grid;
@@ -1481,7 +1481,18 @@ mark {
   }
 }
 
-.modal {
+/* Named `.dlg`, NOT `.modal`.
+ *
+ * Bootstrap owns `.modal`, and it is loaded first (see main.tsx), so its
+ * `position: fixed; top: 0; left: 0; width: 100%; height: 100%` applied to
+ * anything using that name. This rule only sets width/max-height/display, so
+ * Bootstrap's positioning survived untouched and pinned the panel to the
+ * viewport's top-left corner — no amount of centring the scrim could move it,
+ * because the panel was not being laid out by the scrim at all.
+ *
+ * Before adding a class here, check it is not already in bootstrap.min.css.
+ */
+.dlg {
   width: min(560px, 100%);
   max-height: min(86vh, 760px);
   /* Belt and braces: if the scrim ever stops being a grid, `margin: auto` on a
@@ -1494,12 +1505,12 @@ mark {
   border-radius: 8px;
   box-shadow: var(--shadow-flyout);
   overflow: hidden;
-  animation: modal-in 0.14s cubic-bezier(0.2, 0, 0, 1);
+  animation: dlg-in 0.14s cubic-bezier(0.2, 0, 0, 1);
 }
 
 /* Movement is small and fast on purpose: a dialog that slides a long way reads
    as slow once you have opened it for the fiftieth time. */
-@keyframes modal-in {
+@keyframes dlg-in {
   from {
     opacity: 0;
     transform: translateY(6px) scale(0.99);
@@ -1508,25 +1519,25 @@ mark {
 
 /* Honour the OS setting — motion sickness is not a preference to override. */
 @media (prefers-reduced-motion: reduce) {
-  .scrim--modal,
-  .modal {
+  .scrim--dialog,
+  .dlg {
     animation: none;
   }
 }
 
-.modal--sm {
+.dlg--sm {
   width: min(420px, 100%);
 }
 
-.modal--lg {
+.dlg--lg {
   width: min(680px, 100%);
 }
 
-.modal:focus {
+.dlg:focus {
   outline: none;
 }
 
-.modal__head {
+.dlg__head {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -1534,21 +1545,21 @@ mark {
   border-bottom: 1px solid var(--grey-30);
 }
 
-.modal__title {
+.dlg__title {
   margin: 0;
   font-size: 17px;
   font-weight: 600;
   color: var(--grey-190);
 }
 
-.modal__subtitle {
+.dlg__subtitle {
   margin: 3px 0 0;
   font-size: 12px;
   line-height: 1.5;
   color: var(--grey-110);
 }
 
-.modal__close {
+.dlg__close {
   margin-left: auto;
   flex: none;
   width: 28px;
@@ -1559,24 +1570,24 @@ mark {
   line-height: 1;
 }
 
-.modal__close:hover {
+.dlg__close:hover {
   background: var(--grey-20);
   color: var(--grey-190);
 }
 
-.modal__body {
+.dlg__body {
   padding: 16px 20px;
   overflow-y: auto;
 }
 
-.modal__message {
+.dlg__message {
   margin: 0;
   font-size: 13px;
   line-height: 1.6;
   color: var(--grey-160);
 }
 
-.modal__foot {
+.dlg__foot {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -1588,7 +1599,7 @@ mark {
 
 /* The dismissive choice sits apart from the committing ones, so the two are
    never hit by muscle memory alone. */
-.modal__foot .btn-outline-secondary:first-child {
+.dlg__foot .btn-outline-secondary:first-child {
   margin-right: auto;
 }
 
@@ -2080,13 +2091,13 @@ mark {
   /* Scoped to the palette's scrim. Unscoped, this also reset the padding a
      centred dialog relies on — and being later in the file, it won.
      `:not()` here costs no specificity beyond the class inside it. */
-  .scrim:not(.scrim--modal) {
+  .scrim:not(.scrim--dialog) {
     padding-top: 40px;
   }
 
   /* Dialogs give back the outer margin on a phone; 24px each side of a
      420px panel is most of a small screen. */
-  .scrim--modal {
+  .scrim--dialog {
     padding: 12px;
   }
 }
