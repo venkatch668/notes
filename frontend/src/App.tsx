@@ -59,7 +59,8 @@ export default function App() {
   const [flashBlockId, setFlashBlockId] = useState<string | null>(null);
 
   const activeBlockId = useRef<string | null>(null);
-  const saveTimer = useRef<number | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setNavOpen(!isMobile);
@@ -135,45 +136,77 @@ export default function App() {
 
   /* -------------------------------------------------------------- saving */
 
-  // Bumped on every edit so a save that lands late cannot overwrite newer
-  // state with the version stamp of an older one.
+  // Edits only touch local state; nothing reaches the server until the user
+  // clicks Save. Bumped on every edit so a save that lands late cannot
+  // overwrite newer state with the version stamp of an older one.
   const revision = useRef(0);
 
   const changePage = useCallback((next: Page) => {
     setPage(next);
-    const rev = (revision.current += 1);
-
-    if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(async () => {
-      try {
-        const saved = await api.savePage(next);
-        // Adopt the server's timestamp so the following save is not rejected as
-        // stale. Only the stamp — never the blocks, which would clobber
-        // anything typed while the request was in flight.
-        if (saved && revision.current === rev) {
-          setPage((cur) => (cur && cur.id === saved.id ? { ...cur, updatedAt: saved.updatedAt } : cur));
-        }
-      } catch (err) {
-        console.error('Save failed', err);
-      }
-    }, 400);
+    setDirty(true);
+    revision.current += 1;
   }, []);
+
+  const savePage = useCallback(async () => {
+    if (!page) return true;
+    const rev = revision.current;
+    setSaving(true);
+    try {
+      const saved = await api.savePage(page);
+      if (saved && revision.current === rev) {
+        // Adopt the server's timestamp so the next save is not rejected as
+        // stale, but keep the locally-typed blocks — a request in flight
+        // must never clobber what was typed after it was sent.
+        setPage((cur) => (cur && cur.id === saved.id ? { ...cur, updatedAt: saved.updatedAt } : cur));
+        setDirty(false);
+      }
+      return true;
+    } catch (err) {
+      console.error('Save failed', err);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [page]);
+
+  // Unsaved edits are only in memory — warn before a hard reload/close loses them.
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
+
+  // Ask before navigating away from a page with unsaved edits: returns true
+  // if it's safe to proceed (saved, discarded, or nothing was dirty).
+  const confirmLeave = useCallback(async () => {
+    if (!dirty) return true;
+    const choice = window.confirm('This page has unsaved changes. Save them before leaving?\n\nOK = save, Cancel = discard and continue.');
+    if (choice) return savePage();
+    setDirty(false);
+    return true;
+  }, [dirty, savePage]);
 
   /* ---------------------------------------------------------- navigation */
 
   const openDate = useCallback(async (date: string) => {
+    if (!(await confirmLeave())) return;
     const p = await api.getOrCreateDaily(dailySectionId.current ?? '', date);
     if (dailySectionId.current) setSectionId(dailySectionId.current);
     setPage(withSeedBlock(p));
     setCarryDismissed(false);
     closeNavOnMobile();
-  }, [closeNavOnMobile]);
+  }, [closeNavOnMobile, confirmLeave]);
 
   const openPage = useCallback(async (pageId: string) => {
+    if (!(await confirmLeave())) return;
     const p = await api.getPage(pageId);
     if (p) setPage(withSeedBlock(p));
     closeNavOnMobile();
-  }, [closeNavOnMobile]);
+  }, [closeNavOnMobile, confirmLeave]);
 
   const jumpTo = useCallback(
     async (hit: { pageId: string; blockId: string }) => {
@@ -260,6 +293,7 @@ export default function App() {
     },
     newPage: async () => {
       if (!sectionId) return;
+      if (!(await confirmLeave())) return;
       const p = await api.createPage(sectionId, 'Untitled page');
       setPage(withSeedBlock(p));
       refreshPages();
@@ -412,6 +446,20 @@ export default function App() {
           onClose={() => setSearchOpen(false)}
           onOpenHit={(h: SearchHit) => jumpTo(h)}
         />
+      )}
+
+      {(dirty || saving) && (
+        <div className="save-bar" role="status">
+          <span className="save-bar__label">{saving ? 'Saving…' : 'Unsaved changes'}</span>
+          <button
+            type="button"
+            className="save-bar__button"
+            disabled={saving}
+            onClick={() => void savePage()}
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
       )}
     </div>
   );

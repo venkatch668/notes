@@ -1565,3 +1565,43 @@ mark {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
+
+/* --------------------------------------------------------------- Save bar */
+
+.save-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--grey-160);
+  color: #fff;
+  box-shadow: var(--shadow-flyout);
+}
+
+.save-bar__label {
+  font-size: 13px;
+}
+
+.save-bar__button {
+  background: var(--onenote-purple);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: var(--radius-md);
+}
+
+.save-bar__button:hover:not(:disabled) {
+  background: var(--onenote-purple-dark);
+}
+
+.save-bar__button:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
