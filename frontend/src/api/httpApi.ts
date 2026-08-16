@@ -291,6 +291,16 @@ export class HttpApi implements WorkspaceApi {
   }
 }
 
-/** Where the API lives. Same-origin `/api/v1` in production, proxied in dev. */
-export const API_BASE_URL: string =
-  (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1';
+/**
+ * Where the API lives. Same-origin `/api/v1` in production, proxied in dev.
+ *
+ * Trimmed and checked for emptiness rather than `??`-defaulted: a `.env` line
+ * of `VITE_API_URL=` yields an empty *string*, which is a perfectly defined
+ * value, so `??` keeps it. The base then collapses to '' and every request
+ * goes to the dev server's own origin — `/reflections/…` instead of
+ * `/api/v1/reflections/…`, missing the proxy entirely and 404ing on what looks
+ * like a backend route.
+ */
+const CONFIGURED_API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+
+export const API_BASE_URL: string = CONFIGURED_API_URL || '/api/v1';

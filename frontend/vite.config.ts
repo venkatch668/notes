@@ -62,10 +62,11 @@ export default defineConfig(({ mode }) => {
       // The Python backend will live here in a later phase. Until then the app
       // runs entirely against the local storage adapter and never calls /api.
       proxy: {
-        // Port 8001, not the usual 8000: another service on this machine
-        // already owns 8000. Keep `backend/start.sh` and this in agreement.
+        // Matches `backend/start.sh`, which defaults to 8000. These two must
+        // agree or every API call 502s through the proxy; set API_TARGET to
+        // override when the backend is running somewhere else.
         '/api': {
-          target: process.env.API_TARGET ?? 'http://127.0.0.1:8001',
+          target: process.env.API_TARGET ?? 'http://127.0.0.1:8000',
           changeOrigin: true,
         },
       },
