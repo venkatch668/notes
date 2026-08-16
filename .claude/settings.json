@@ -45,7 +45,16 @@
       "Bash(git ls-tree *)",
       "Bash(./.venv/Scripts/python -m alembic current)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(./.venv/Scripts/python -m alembic heads)"
+      "Bash(./.venv/Scripts/python -m alembic heads)",
+      "Bash(grep -v \"^\\\\s*/\\\\*\")",
+      "Bash(git filter-branch *)",
+      "Bash(git stash *)",
+      "Bash(git update-ref *)",
+      "Bash(rm -rf .git/refs/original)",
+      "Bash(git reflog *)",
+      "Bash(git gc *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }

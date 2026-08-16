@@ -1449,10 +1449,25 @@ mark {
 
 /* ---------------------------------------------------------------- Modals */
 
-/* Dialogs centre and sit above the command palette, which anchors to the top
-   because it is a search field you type into immediately. */
+/* Dialogs centre; the command palette anchors to the top because it is a
+   search field you type into immediately.
+ *
+ * Every positioning property is restated rather than inherited from `.scrim`.
+ * The two selectors have equal specificity, so which one wins depends purely on
+ * source order — and a `.scrim` override further down (there is one in a
+ * `max-width: 900px` block) silently beats the modifier it appears after.
+ * Restating makes the dialog independent of where else `.scrim` gets touched.
+ *
+ * Grid with `place-items` rather than flex `justify-content`/`align-items`:
+ * it centres on both axes with one declaration that cannot be half-overridden,
+ * and it stops the panel stretching to full height, which is what
+ * `align-items`'s default of `stretch` does the moment `center` fails to land.
+ */
 .scrim--modal {
-  align-items: center;
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
   padding: 24px;
   background: rgba(0, 0, 0, 0.34);
   backdrop-filter: blur(2px);
@@ -1469,6 +1484,10 @@ mark {
 .modal {
   width: min(560px, 100%);
   max-height: min(86vh, 760px);
+  /* Belt and braces: if the scrim ever stops being a grid, `margin: auto` on a
+     fixed-width block still centres it horizontally rather than jamming it
+     against the left edge. */
+  margin: auto;
   display: flex;
   flex-direction: column;
   background: var(--paper);
@@ -2058,8 +2077,17 @@ mark {
     max-height: 80vh;
   }
 
-  .scrim {
+  /* Scoped to the palette's scrim. Unscoped, this also reset the padding a
+     centred dialog relies on — and being later in the file, it won.
+     `:not()` here costs no specificity beyond the class inside it. */
+  .scrim:not(.scrim--modal) {
     padding-top: 40px;
+  }
+
+  /* Dialogs give back the outer margin on a phone; 24px each side of a
+     420px panel is most of a small screen. */
+  .scrim--modal {
+    padding: 12px;
   }
 }
 
