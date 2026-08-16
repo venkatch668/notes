@@ -9,6 +9,7 @@
  */
 
 import type { WorkspaceApi } from './types';
+import { newId } from '../domain/parse';
 import type {
   Block,
   Notebook,
@@ -170,14 +171,23 @@ export class HttpApi implements WorkspaceApi {
   }
 
   async savePage(page: Page): Promise<Page> {
+    // Legacy blocks may still carry pre-UUID ids (the old `b` + base36
+    // scheme); the server's Pydantic model requires a real UUID, so replace
+    // any non-UUID id here rather than let the save 422.
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const safeBlocks = page.blocks.map((b) => ({
+      ...b,
+      id: typeof b.id === 'string' && uuidRe.test(b.id) ? b.id : newId(),
+    }));
+
     return normalizePage(
       await this.request<Page>(`/pages/${page.id}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        title: page.title,
-        blocks: page.blocks,
-        // Optimistic concurrency: tells the server which version we edited.
-        baseUpdatedAt: new Date(page.updatedAt).toISOString(),
+        method: 'PUT',
+        body: JSON.stringify({
+          title: page.title,
+          blocks: safeBlocks,
+          // Optimistic concurrency: tells the server which version we edited.
+          baseUpdatedAt: new Date(page.updatedAt).toISOString(),
         }),
       }),
     );
