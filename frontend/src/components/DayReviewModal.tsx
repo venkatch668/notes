@@ -16,6 +16,7 @@ import { api } from '../api';
 import { addDays, formatDuration, formatLong, formatShort } from '../domain/dates';
 import { displayText, taskOf } from '../domain/parse';
 import { TaskChips } from './Chips';
+import { Modal } from './Modal';
 
 /** What the user decided about one unfinished task. */
 export type ReviewAction = 'carry' | 'drop' | 'skip';
@@ -146,25 +147,33 @@ export function DayReviewModal({ today, sectionId, pending, onApply, onClose }: 
   /* -------------------------------------------------------------- rendering */
 
   return (
-    <div className="scrim" onMouseDown={onClose}>
-      <div
-        className="dayreview shadow-lg"
-        role="dialog"
-        aria-label="Day review"
-        onMouseDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.key === 'Escape' && onClose()}
-      >
-        <div className="dayreview__head">
-          <div>
-            <h2 className="dayreview__title">Good morning</h2>
-            <div className="dayreview__sub">{formatLong(today)}</div>
-          </div>
-          <button type="button" className="linkbtn" onClick={onClose} disabled={busy}>
+    <Modal
+      title="Good morning"
+      subtitle={formatLong(today)}
+      size="lg"
+      onClose={onClose}
+      footer={
+        <>
+          <span className="dayreview__count">
+            {counts.carry} carrying · {counts.drop} dropping · {counts.undecided} left as is
+          </span>
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            onClick={onClose}
+            disabled={busy}
+          >
             Later
           </button>
-        </div>
+          <button type="button" className="btn btn-primary btn-sm" onClick={apply} disabled={busy}>
+            {busy ? 'Applying…' : 'Start the day'}
+          </button>
+        </>
+      }
+    >
+      {error && <div className="notice notice--error">Could not apply: {error}</div>}
 
-        <div className="dayreview__body">
+      <div className="dayreview__body">
           {recap && (
             <section className="dayreview__section">
               <h3 className="dayreview__h3">
@@ -267,19 +276,7 @@ export function DayReviewModal({ today, sectionId, pending, onApply, onClose }: 
               onChange={(e) => setIntent(e.target.value)}
             />
           </section>
-        </div>
-
-        {error && <div className="dayreview__error">Could not apply: {error}</div>}
-
-        <div className="dayreview__foot">
-          <span className="dayreview__count">
-            {counts.carry} carrying · {counts.drop} dropping · {counts.undecided} left as is
-          </span>
-          <button type="button" className="btn btn-primary" onClick={apply} disabled={busy}>
-            {busy ? 'Applying…' : 'Start the day'}
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

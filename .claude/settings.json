@@ -42,7 +42,10 @@
       "PowerShell(foreach \\($p in 8000,5173\\) { $c = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { \"port $p : LISTENING\" } else { \"port $p : free\" } })",
       "Bash(git --no-optional-locks diff --stat HEAD)",
       "Bash(git update-index *)",
-      "Bash(git ls-tree *)"
+      "Bash(git ls-tree *)",
+      "Bash(./.venv/Scripts/python -m alembic current)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(./.venv/Scripts/python -m alembic heads)"
     ]
   }
 }

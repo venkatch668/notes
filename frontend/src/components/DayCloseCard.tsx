@@ -1,13 +1,16 @@
 /**
  * The end-of-day close.
  *
- * The morning review asks what you intend; this asks what happened. Together
- * they are the only record of *intent* in the whole product, which is what the
- * weekly retro measures the week against — counted minutes alone can tell you
- * where the time went, but not whether that was where you meant it to go.
+ * A single button pinned at the foot of the note, a dialog to say how the day
+ * went, and a closing quote once it is saved.
  *
- * The counters are captured here and stored, rather than recomputed later:
- * editing a note next month must not rewrite what that day actually felt like.
+ * The morning review asks what you intend; this asks what happened. Together
+ * they are the only record of *intent* in the product, which is what the weekly
+ * retro measures the week against — counted minutes tell you where the time
+ * went, but not whether that was where you meant it to go.
+ *
+ * The counters are captured at close time and stored, not recomputed later:
+ * editing this note next month must not rewrite what the day felt like.
  */
 
 import { useEffect, useState } from 'react';
@@ -15,12 +18,15 @@ import type { DayReflection, Page } from '../types/models';
 import { api } from '../api';
 import { formatDuration } from '../domain/dates';
 import { taskOf } from '../domain/parse';
+import { closingLine, quoteForDay } from '../domain/quotes';
+import { Modal } from './Modal';
 
 interface Props {
   page: Page;
-  /** Rendered inline under the note, so closing the day is where the day is. */
   onSaved?: (reflection: DayReflection) => void;
 }
+
+type Stage = 'idle' | 'form' | 'done';
 
 function snapshot(page: Page) {
   const tasks = page.blocks.filter((b) => b.type === 'CHECKBOX');
@@ -32,7 +38,7 @@ function snapshot(page: Page) {
 }
 
 export function DayCloseCard({ page, onSaved }: Props) {
-  const [open, setOpen] = useState(false);
+  const [stage, setStage] = useState<Stage>('idle');
   const [reflection, setReflection] = useState<DayReflection | null>(null);
   const [wentWell, setWentWell] = useState('');
   const [blockers, setBlockers] = useState('');
@@ -52,12 +58,9 @@ export function DayCloseCard({ page, onSaved }: Props) {
         setReflection(r);
         setWentWell(r.wentWell);
         setBlockers(r.blockers);
-        // Already closed once: show it expanded, because the reason to come
-        // back is to read or amend it.
-        setOpen(true);
       })
       .catch(() => {
-        /* Not being able to read yesterday's close must not block writing today's. */
+        /* Failing to read an old close must not block writing today's. */
       });
     return () => {
       cancelled = true;
@@ -66,6 +69,9 @@ export function DayCloseCard({ page, onSaved }: Props) {
 
   if (!date) return null;
 
+  const closed = Boolean(reflection?.wentWell || reflection?.blockers);
+  const quote = quoteForDay(date);
+
   const save = async () => {
     setSaving(true);
     setError(null);
@@ -73,7 +79,7 @@ export function DayCloseCard({ page, onSaved }: Props) {
       const next: DayReflection = {
         date,
         // Set in the morning review; preserved rather than overwritten, since
-        // this card never asks for it.
+        // this dialog never asks for it.
         intent: reflection?.intent ?? '',
         wentWell: wentWell.trim(),
         blockers: blockers.trim(),
@@ -84,6 +90,7 @@ export function DayCloseCard({ page, onSaved }: Props) {
       const saved = await api.saveReflection(next);
       setReflection(saved);
       onSaved?.(saved);
+      setStage('done');
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -91,71 +98,129 @@ export function DayCloseCard({ page, onSaved }: Props) {
     }
   };
 
-  if (!open) {
-    return (
-      <button type="button" className="dayclose__open" onClick={() => setOpen(true)}>
-        Close the day →
-      </button>
-    );
-  }
-
   return (
-    <section className="dayclose" aria-label="End of day">
-      <div className="dayclose__head">
-        <span>End of day</span>
-        <button type="button" className="linkbtn" onClick={() => setOpen(false)}>
-          Hide
+    <>
+      <div className="dayclose__bar">
+        <button
+          type="button"
+          className={`dayclose__btn ${closed ? 'dayclose__btn--done' : ''}`}
+          onClick={() => setStage('form')}
+        >
+          <span className="dayclose__btnicon" aria-hidden>
+            {closed ? '✓' : '🌙'}
+          </span>
+          <span className="dayclose__btntext">
+            <strong>{closed ? 'Day closed' : 'End of day'}</strong>
+            <span className="dayclose__btnsub">
+              {closed
+                ? 'Reopen to add more'
+                : `${counts.done} done · ${counts.open} open${counts.focusMinutes ? ` · ${formatDuration(counts.focusMinutes)} focused` : ''}`}
+            </span>
+          </span>
+          <span className="dayclose__btnchev" aria-hidden>
+            →
+          </span>
         </button>
       </div>
 
-      <div className="dayclose__recap">
-        <span>
-          <strong>{counts.done}</strong> done
-        </span>
-        <span>
-          <strong>{counts.open}</strong> still open
-        </span>
-        <span>
-          <strong>{counts.focusMinutes ? formatDuration(counts.focusMinutes) : '—'}</strong> focused
-        </span>
-      </div>
+      {stage === 'form' && (
+        <Modal
+          title="How did today go?"
+          subtitle="Two lines is plenty. The weekly retro reads these."
+          onClose={() => setStage('idle')}
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => setStage('idle')}
+              >
+                Not now
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={save}
+                disabled={saving}
+              >
+                {saving ? 'Saving…' : 'Save & close the day'}
+              </button>
+            </>
+          }
+        >
+          <div className="closestats">
+            <div className="closestat">
+              <span className="closestat__value">{counts.done}</span>
+              <span className="closestat__label">done</span>
+            </div>
+            <div className="closestat">
+              <span className="closestat__value">{counts.open}</span>
+              <span className="closestat__label">still open</span>
+            </div>
+            <div className="closestat">
+              <span className="closestat__value">
+                {counts.focusMinutes ? formatDuration(counts.focusMinutes) : '—'}
+              </span>
+              <span className="closestat__label">focused</span>
+            </div>
+          </div>
 
-      {reflection?.intent && (
-        <div className="dayclose__intent">
-          This morning you said: <em>{reflection.intent}</em>
-        </div>
+          {reflection?.intent && (
+            <p className="closeintent">
+              This morning you said: <em>{reflection.intent}</em>
+            </p>
+          )}
+
+          <label className="field">
+            <span className="field__label">What went well?</span>
+            <textarea
+              className="form-control"
+              rows={2}
+              value={wentWell}
+              onChange={(e) => setWentWell(e.target.value)}
+              placeholder="Anything you want to remember about today"
+            />
+          </label>
+
+          <label className="field">
+            <span className="field__label">What got in the way?</span>
+            <textarea
+              className="form-control"
+              rows={2}
+              value={blockers}
+              onChange={(e) => setBlockers(e.target.value)}
+              placeholder="Interruptions, blockers, anything the retro should know"
+            />
+          </label>
+
+          {error && <p className="field__error">Could not save: {error}</p>}
+        </Modal>
       )}
 
-      <label className="dayclose__field">
-        <span>What went well?</span>
-        <input
-          className="form-control"
-          value={wentWell}
-          onChange={(e) => setWentWell(e.target.value)}
-          placeholder="One line is enough"
-        />
-      </label>
-
-      <label className="dayclose__field">
-        <span>What got in the way?</span>
-        <input
-          className="form-control"
-          value={blockers}
-          onChange={(e) => setBlockers(e.target.value)}
-          placeholder="Interruptions, blockers, anything you want the retro to know"
-        />
-      </label>
-
-      {error && <div className="dayclose__error">Could not save: {error}</div>}
-
-      <div className="dayclose__foot">
-        {reflection?.wentWell || reflection?.blockers ? (
-          <span className="dayclose__saved">Saved</span>
-        ) : null}
-        <button type="button" className="btn btn-primary btn-sm" onClick={save} disabled={saving}>
-          {saving ? 'Saving…' : 'Save reflection'}
-        </button>
-      </div>
-    </section>
+      {stage === 'done' && (
+        <Modal
+          title="Day closed"
+          size="sm"
+          onClose={() => setStage('idle')}
+          footer={
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => setStage('idle')}
+            >
+              Goodnight
+            </button>
+          }
+        >
+          <p className="closingline">
+            {closingLine(counts.done, counts.open, counts.focusMinutes)}
+          </p>
+          <blockquote className="quote">
+            <p className="quote__text">“{quote.text}”</p>
+            <footer className="quote__author">— {quote.author}</footer>
+          </blockquote>
+        </Modal>
+      )}
+    </>
   );
 }

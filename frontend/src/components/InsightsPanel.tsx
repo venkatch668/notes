@@ -79,7 +79,7 @@ export function InsightsPanel() {
       </div>
 
       <div className="insights">
-        {error && <div className="dayclose__error">{error}</div>}
+        {error && <div className="notice notice--error">{error}</div>}
 
         {/* The written retro leads: the numbers below are the evidence for it,
             not the point of the panel. */}

@@ -11,6 +11,7 @@ import { SearchPalette } from './components/SearchPalette';
 import { AIPanel } from './components/AIPanel';
 import { InsightsPanel } from './components/InsightsPanel';
 import { DayReviewModal, type ReviewDecision } from './components/DayReviewModal';
+import { ConfirmModal, PromptModal } from './components/Modal';
 import type { Citation } from './services/aiService';
 import { MOBILE_QUERY, useMediaQuery } from './lib/useMediaQuery';
 
@@ -74,6 +75,18 @@ export default function App() {
   const [carry, setCarry] = useState<Array<{ page: PageSummary; block: Block }>>([]);
   const [carryDismissed, setCarryDismissed] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+
+  /**
+   * Which create-dialog is open, if any.
+   *
+   * One piece of state rather than three booleans: only one can ever be open,
+   * and modelling that directly makes the impossible states unrepresentable.
+   */
+  const [creating, setCreating] = useState<'notebook' | 'section' | 'page' | null>(null);
+
+  // Held as a resolver so `confirmLeave` can await the user's answer. Wrapped
+  // in a function because `setState` treats a bare function as an updater.
+  const [leaveConfirm, setLeaveConfirm] = useState<((choice: string) => void) | null>(null);
   const [flashBlockId, setFlashBlockId] = useState<string | null>(null);
 
   const activeBlockId = useRef<string | null>(null);
@@ -229,14 +242,28 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [dirty]);
 
-  // Ask before navigating away from a page with unsaved edits: returns true
-  // if it's safe to proceed (saved, discarded, or nothing was dirty).
+  /**
+   * Ask before navigating away from a page with unsaved edits.
+   *
+   * Resolves true when it is safe to proceed. Three outcomes, not two: save and
+   * go, discard and go, or stay put. `window.confirm` could only offer two, so
+   * the old version had to spell out "OK = save, Cancel = discard" and gave no
+   * way to simply cancel the navigation — the one thing you most want when you
+   * clicked the wrong day by accident.
+   */
   const confirmLeave = useCallback(async () => {
     if (!dirty) return true;
-    const choice = window.confirm('This page has unsaved changes. Save them before leaving?\n\nOK = save, Cancel = discard and continue.');
-    if (choice) return savePage();
-    setDirty(false);
-    return true;
+    const choice = await new Promise<string>((resolve) => {
+      setLeaveConfirm(() => resolve);
+    });
+    setLeaveConfirm(null);
+
+    if (choice === 'save') return savePage();
+    if (choice === 'discard') {
+      setDirty(false);
+      return true;
+    }
+    return false;
   }, [dirty, savePage]);
 
   /* ---------------------------------------------------------- navigation */
@@ -459,10 +486,10 @@ export default function App() {
     },
     newPage: async () => {
       if (!sectionId) return;
+      // Confirm *before* opening the dialog, so the user is not asked to name a
+      // page and only then told they cannot leave the current one.
       if (!(await confirmLeave())) return;
-      const p = await api.createPage(sectionId, 'Untitled page');
-      setPage(withSeedBlock(p));
-      refreshPages();
+      setCreating('page');
     },
     today: () => openDate(todayKey()),
     exportJson: async () => {
@@ -537,13 +564,7 @@ export default function App() {
           notebooks={notebooks}
           activeId={notebookId}
           onSelect={setNotebookId}
-          onAdd={async () => {
-            const name = window.prompt('Notebook name');
-            if (name) {
-              await api.createNotebook(name);
-              setNotebooks(await api.listNotebooks());
-            }
-          }}
+          onAdd={() => setCreating('notebook')}
         />
 
         <SectionPane
@@ -561,14 +582,7 @@ export default function App() {
               setSearchOpen(true);
             }
           }}
-          onAdd={async () => {
-            if (!notebookId) return;
-            const name = window.prompt('Section name');
-            if (name) {
-              await api.createSection(notebookId, name);
-              setSections(await api.listSections(notebookId));
-            }
-          }}
+          onAdd={() => setCreating('section')}
         />
 
         <PagePane
@@ -606,6 +620,70 @@ export default function App() {
         )}
         {insightsOpen && <InsightsPanel />}
       </div>
+
+      {creating === 'notebook' && (
+        <PromptModal
+          title="New notebook"
+          subtitle="A notebook holds sections; sections hold your daily pages."
+          label="Notebook name"
+          placeholder="Work, Side projects, Learning…"
+          withColor
+          onClose={() => setCreating(null)}
+          onSubmit={async (name) => {
+            await api.createNotebook(name);
+            setNotebooks(await api.listNotebooks());
+          }}
+        />
+      )}
+
+      {creating === 'section' && (
+        <PromptModal
+          title="New section"
+          subtitle="Sections group pages inside this notebook."
+          label="Section name"
+          placeholder="Daily Log, Meetings, Learning…"
+          withColor
+          onClose={() => setCreating(null)}
+          onSubmit={async (name) => {
+            if (!notebookId) return;
+            await api.createSection(notebookId, name);
+            setSections(await api.listSections(notebookId));
+          }}
+        />
+      )}
+
+      {creating === 'page' && (
+        <PromptModal
+          title="New page"
+          subtitle="A free page, outside the daily log."
+          label="Page title"
+          placeholder="Design notes, Runbook, Interview prep…"
+          initialValue="Untitled page"
+          onClose={() => setCreating(null)}
+          onSubmit={async (title) => {
+            if (!sectionId) return;
+            const p = await api.createPage(sectionId, title);
+            setPage(withSeedBlock(p));
+            refreshPages();
+          }}
+        />
+      )}
+
+      {leaveConfirm && (
+        <ConfirmModal
+          title="Unsaved changes"
+          message="This page has edits that have not been saved yet."
+          // Ordered least-to-most committing, left to right: the dismissive
+          // choice sits away from the primary one so a reflexive click on the
+          // right never discards work.
+          choices={[
+            { label: 'Stay here', value: 'stay', variant: 'ghost' },
+            { label: 'Discard changes', value: 'discard', variant: 'danger' },
+            { label: 'Save and continue', value: 'save', variant: 'primary' },
+          ]}
+          onChoose={leaveConfirm}
+        />
+      )}
 
       {reviewOpen && page?.date === todayKey() && (
         <DayReviewModal

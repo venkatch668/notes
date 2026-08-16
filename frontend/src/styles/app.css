@@ -732,101 +732,157 @@ body {
 
 /* ----------------------------------------------------------- Day close */
 
-.dayclose__open {
-  margin: 18px 0 6px;
-  padding: 8px 12px;
-  width: 100%;
-  border: 1px dashed var(--grey-40);
-  border-radius: var(--radius-md);
-  color: var(--grey-110);
-  font-size: 12px;
-  text-align: left;
+.dayclose__bar {
+  margin: 26px 0 4px;
+  padding-top: 18px;
+  border-top: 1px solid var(--grey-30);
 }
 
-.dayclose__open:hover {
+.dayclose__btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--grey-40);
+  border-radius: 8px;
+  background: var(--grey-10);
+  text-align: left;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    transform 0.12s ease;
+}
+
+.dayclose__btn:hover {
   border-color: var(--onenote-purple);
+  background: var(--onenote-purple-light);
+  transform: translateY(-1px);
+}
+
+.dayclose__btn:focus-visible {
+  outline: 2px solid var(--onenote-purple);
+  outline-offset: 2px;
+}
+
+/* Closed days stay reopenable but stop competing for attention. */
+.dayclose__btn--done {
+  background: var(--paper);
+  border-style: dashed;
+}
+
+.dayclose__btnicon {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--grey-40);
+  font-size: 14px;
+}
+
+.dayclose__btn--done .dayclose__btnicon {
+  color: #107c10;
+  border-color: #107c10;
+}
+
+.dayclose__btntext {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.dayclose__btntext strong {
+  font-size: 13px;
+  color: var(--grey-190);
+}
+
+.dayclose__btnsub {
+  font-size: 11px;
+  color: var(--grey-110);
+}
+
+.dayclose__btnchev {
+  margin-left: auto;
+  color: var(--grey-90);
+  transition: transform 0.12s ease;
+}
+
+.dayclose__btn:hover .dayclose__btnchev {
+  transform: translateX(3px);
   color: var(--onenote-purple);
 }
 
-.dayclose {
-  margin: 18px 0 6px;
-  padding: 12px 14px;
-  border: 1px solid var(--grey-40);
-  border-left: 3px solid var(--onenote-purple);
+/* -------------------------------------------------- Close dialog innards */
+
+.closestats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.closestat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
   border-radius: var(--radius-md);
   background: var(--grey-10);
 }
 
-.dayclose__head {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.closestat__value {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--grey-190);
+  font-variant-numeric: tabular-nums;
+}
+
+.closestat__label {
+  font-size: 11px;
   color: var(--grey-110);
 }
 
-.dayclose__head .linkbtn {
-  margin-left: auto;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.dayclose__recap {
-  display: flex;
-  gap: 20px;
+.closeintent {
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--onenote-purple);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--onenote-purple-light);
   font-size: 12px;
-  color: var(--grey-110);
+  line-height: 1.5;
+  color: var(--grey-160);
 }
 
-.dayclose__recap strong {
-  font-size: 16px;
+.closingline {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--grey-190);
 }
 
-.dayclose__intent {
-  margin-top: 10px;
+.quote {
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--onenote-purple-light), var(--grey-10));
+}
+
+.quote__text {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.65;
+  font-style: italic;
+  color: var(--grey-190);
+}
+
+.quote__author {
   font-size: 12px;
   color: var(--grey-130);
-}
-
-.dayclose__field {
-  display: block;
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--grey-110);
-}
-
-.dayclose__field span {
-  display: block;
-  margin-bottom: 4px;
-}
-
-.dayclose__error {
-  margin-top: 10px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  background: #fdeded;
-  color: #a4262c;
-  font-size: 12px;
-}
-
-.dayclose__foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.dayclose__saved {
-  font-size: 11px;
-  color: var(--grey-90);
-}
-
-.dayclose__foot .btn {
-  margin-left: auto;
 }
 
 /* --------------------------------------------------------- Weekly retro */
@@ -939,44 +995,11 @@ body {
 
 /* ---------------------------------------------------------- Day review */
 
-.dayreview {
-  width: min(680px, 94vw);
-  max-height: 82vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--paper);
-  border-radius: 8px;
-  box-shadow: var(--shadow-flyout);
-  overflow: hidden;
-}
-
-.dayreview__head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 18px 20px 12px;
-  border-bottom: 1px solid var(--grey-30);
-}
-
-.dayreview__title {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 600;
-  color: var(--grey-190);
-}
-
-.dayreview__sub {
-  font-size: 12px;
-  color: var(--grey-110);
-}
-
-.dayreview__head .linkbtn {
-  margin-left: auto;
-}
+/* Chrome, head and footer now come from `.modal`; what remains here is only
+   what is specific to reviewing a day. */
 
 .dayreview__body {
-  overflow-y: auto;
-  padding: 4px 20px 12px;
+  padding: 0;
 }
 
 .dayreview__section {
@@ -1082,29 +1105,45 @@ body {
   width: 148px;
 }
 
-.dayreview__error {
-  padding: 10px 20px;
-  background: #fdeded;
-  color: #a4262c;
-  font-size: 12px;
-}
-
-.dayreview__foot {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  border-top: 1px solid var(--grey-30);
-  background: var(--grey-10);
-}
-
 .dayreview__count {
+  margin-right: auto;
   font-size: 12px;
   color: var(--grey-110);
 }
 
-.dayreview__foot .btn {
-  margin-left: auto;
+/* ------------------------------------------------------- Inline notices */
+
+.notice {
+  padding: 9px 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.notice--error {
+  background: #fdeded;
+  color: #a4262c;
+}
+
+/* ------------------------------------------------------ Focus visibility */
+
+/* Keyboard users get a ring; mouse users do not. Buttons here are custom
+   elements with backgrounds stripped, so without this the focused control is
+   genuinely invisible and tabbing through a dialog is guesswork. */
+.btn:focus-visible,
+.linkbtn:focus-visible,
+.navrow:focus-visible,
+.pagerow:focus-visible,
+.quickdate:focus-visible,
+.pane__add:focus-visible,
+.calendar__day:focus-visible,
+.aisuggest:focus-visible,
+.aicite:focus-visible,
+.checkbox:focus-visible {
+  outline: 2px solid var(--onenote-purple);
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
 }
 
 .linkbtn {
@@ -1406,6 +1445,182 @@ mark {
   align-items: flex-start;
   padding-top: 84px;
   z-index: 40;
+}
+
+/* ---------------------------------------------------------------- Modals */
+
+/* Dialogs centre and sit above the command palette, which anchors to the top
+   because it is a search field you type into immediately. */
+.scrim--modal {
+  align-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(2px);
+  z-index: 60;
+  animation: scrim-in 0.12s ease-out;
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.modal {
+  width: min(560px, 100%);
+  max-height: min(86vh, 760px);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-radius: 8px;
+  box-shadow: var(--shadow-flyout);
+  overflow: hidden;
+  animation: modal-in 0.14s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Movement is small and fast on purpose: a dialog that slides a long way reads
+   as slow once you have opened it for the fiftieth time. */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+}
+
+/* Honour the OS setting — motion sickness is not a preference to override. */
+@media (prefers-reduced-motion: reduce) {
+  .scrim--modal,
+  .modal {
+    animation: none;
+  }
+}
+
+.modal--sm {
+  width: min(420px, 100%);
+}
+
+.modal--lg {
+  width: min(680px, 100%);
+}
+
+.modal:focus {
+  outline: none;
+}
+
+.modal__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--grey-30);
+}
+
+.modal__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--grey-190);
+}
+
+.modal__subtitle {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--grey-110);
+}
+
+.modal__close {
+  margin-left: auto;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  color: var(--grey-110);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.modal__close:hover {
+  background: var(--grey-20);
+  color: var(--grey-190);
+}
+
+.modal__body {
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.modal__message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--grey-160);
+}
+
+.modal__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--grey-30);
+  background: var(--grey-10);
+}
+
+/* The dismissive choice sits apart from the committing ones, so the two are
+   never hit by muscle memory alone. */
+.modal__foot .btn-outline-secondary:first-child {
+  margin-right: auto;
+}
+
+/* ------------------------------------------------------ Form primitives */
+
+.field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field__label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--grey-130);
+}
+
+.field__error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #a4262c;
+}
+
+.swatches {
+  display: flex;
+  gap: 8px;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* Ring rather than a tick: a checkmark over a dark swatch is unreadable at
+   this size, and the ring works on every colour in the palette. */
+.swatch--on {
+  border-color: var(--paper);
+  box-shadow: 0 0 0 2px var(--grey-160);
+}
+
+.swatch:focus-visible {
+  outline: 2px solid var(--onenote-purple);
+  outline-offset: 2px;
 }
 
 .palette {
