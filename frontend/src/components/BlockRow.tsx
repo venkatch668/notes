@@ -39,6 +39,8 @@ export function BlockRow(props: BlockRowProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
   const pendingCaret = useRef<number | null>(null);
+  /** Viewport point of the click that opened edit mode, resolved post-swap. */
+  const pendingPoint = useRef<{ x: number; y: number } | null>(null);
 
   // The contenteditable is uncontrolled while focused: every keystroke is
   // typed straight into the DOM by the browser, then echoed up through
@@ -69,7 +71,16 @@ export function BlockRow(props: BlockRowProps) {
       // the wrong element and either re-appends onto the old block's already
       // trimmed text (reads as duplication) or gets silently dropped.
       if (document.activeElement !== el) el.focus();
-      setCaret(el, pendingCaret.current ?? block.text.length);
+
+      // Resolve the click point now that `el` holds the raw source, so the
+      // offset and the string it indexes into are the same text. Falls back to
+      // an explicit pendingCaret (set by split/merge/shortcut paths, which
+      // already work in source space) and finally to end-of-line.
+      const fromPoint = pendingPoint.current
+        ? offsetFromPoint(el, pendingPoint.current.x, pendingPoint.current.y)
+        : null;
+      setCaret(el, fromPoint ?? pendingCaret.current ?? block.text.length);
+      pendingPoint.current = null;
       pendingCaret.current = null;
       return;
     }
@@ -166,9 +177,20 @@ export function BlockRow(props: BlockRowProps) {
 
   const startEditing = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('a')) return; // let links win
-    const el = ref.current;
-    const offset = el ? offsetFromPoint(el, e.clientX, e.clientY) : null;
-    pendingCaret.current = offset ?? block.text.length;
+    // Only the point is captured here, never an offset.
+    //
+    // Read mode renders `displayText` through <Inline>: attribute tokens are
+    // stripped, inline markers are consumed, and the chips live inside this
+    // same element and count toward its text length. Any offset measured now
+    // is an index into *that* string, but it would be applied to the raw
+    // source once edit mode swaps `el.textContent = block.text` — a different,
+    // longer string. The caret then lands short by exactly however many
+    // characters the renderer had hidden to the left of the click.
+    //
+    // Deferring the measurement to the layout effect means point-to-offset is
+    // resolved against the DOM the caret actually goes into.
+    pendingPoint.current = { x: e.clientX, y: e.clientY };
+    pendingCaret.current = null;
     forceSync.current = true;
     setEditing(true);
   };
